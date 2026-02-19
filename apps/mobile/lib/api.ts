@@ -2,13 +2,14 @@ import { Platform } from 'react-native';
 import { supabase } from './supabase';
 
 const API_PORT = process.env.EXPO_PUBLIC_API_PORT ?? '3002';
-const rawMobile = process.env.EXPO_PUBLIC_API_URL ?? `http://192.168.1.2:${API_PORT}`;
-const MOBILE_API_URL = rawMobile.replace(/\/+$/, ''); // strip trailing slashes
-// Web: always localhost. Mobile: use .env (tunnel URL or LAN IP)
-const API_URL =
-  Platform.OS === 'web'
+// EXPO_PUBLIC_API_URL set → web + mobile hepsi Railway/production kullanır
+// Web local dev: localhost. Mobile: LAN IP veya tunnel
+const rawUrl = process.env.EXPO_PUBLIC_API_URL;
+const API_URL = rawUrl
+  ? rawUrl.replace(/\/+$/, '')
+  : Platform.OS === 'web'
     ? `http://localhost:${API_PORT}`
-    : MOBILE_API_URL;
+    : `http://192.168.1.2:${API_PORT}`;
 
 export function getApiUrl(): string {
   return API_URL;
