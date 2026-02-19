@@ -144,9 +144,6 @@ importers:
       expo-router:
         specifier: ~4.0.0
         version: 4.0.22(expo-constants@17.0.8)(expo-linking@7.0.5)(expo@54.0.33)(react-dom@19.1.0(react@19.1.0))(react-native-safe-area-context@5.0.0(react-native@0.81.0(@babel/core@7.29.0)(@react-native-community/cli@13.6.4)(@react-native/metro-config@0.84.0(@babel/core@7.29.0))(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native-screens@4.0.0(react-native@0.81.0(@babel/core@7.29.0)(@react-native-community/cli@13.6.4)(@react-native/metro-config@0.84.0(@babel/core@7.29.0))(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.0(@babel/core@7.29.0)(@react-native-community/cli@13.6.4)(@react-native/metro-config@0.84.0(@babel/core@7.29.0))(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
-      expo-speech-recognition:
-        specifier: ^3.1.0
-        version: 3.1.0(expo@54.0.33(@babel/core@7.29.0)(@expo/metro-runtime@6.1.2)(expo-router@4.0.22)(graphql@15.8.0)(react-native@0.81.0(@babel/core@7.29.0)(@react-native-community/cli@13.6.4)(@react-native/metro-config@0.84.0(@babel/core@7.29.0))(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.0(@babel/core@7.29.0)(@react-native-community/cli@13.6.4)(@react-native/metro-config@0.84.0(@babel/core@7.29.0))(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
       expo-splash-screen:
         specifier: ~0.29.0
         version: 0.29.24(expo@54.0.33(@babel/core@7.29.0)(@expo/metro-runtime@6.1.2)(expo-router@4.0.22)(graphql@15.8.0)(react-native@0.81.0(@babel/core@7.29.0)(@react-native-community/cli@13.6.4)(@react-native/metro-config@0.84.0(@babel/core@7.29.0))(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))
@@ -2550,13 +2547,6 @@ packages:
   expo-server@1.0.5:
     resolution: {integrity: sha512-IGR++flYH70rhLyeXF0Phle56/k4cee87WeQ4mamS+MkVAVP+dDlOHf2nN06Z9Y2KhU0Gp1k+y61KkghF7HdhA==}
     engines: {node: '>=20.16.0'}
-
-  expo-speech-recognition@3.1.0:
-    resolution: {integrity: sha512-DgCvY42hbhGDxDKJD0WjgjZboPOXY58JNNQ+zaBQmB+3M2PR2tS8ZTP/yIwslbe30Cnw8yf5JBxrqkZFiLmewQ==}
-    peerDependencies:
-      expo: '*'
-      react: 19.1.0
-      react-native: '*'
 
   expo-splash-screen@0.29.24:
     resolution: {integrity: sha512-k2rdjbb3Qeg4g104Sdz6+qXXYba8QgiuZRSxHX8IpsSYiiTU48BmCCGy12sN+O1B+sD1/+WPL4duCa1Fy6+Y4g==}
@@ -8537,12 +8527,6 @@ snapshots:
       - encoding
 
   expo-server@1.0.5: {}
-
-  expo-speech-recognition@3.1.0(expo@54.0.33(@babel/core@7.29.0)(@expo/metro-runtime@6.1.2)(expo-router@4.0.22)(graphql@15.8.0)(react-native@0.81.0(@babel/core@7.29.0)(@react-native-community/cli@13.6.4)(@react-native/metro-config@0.84.0(@babel/core@7.29.0))(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.0(@babel/core@7.29.0)(@react-native-community/cli@13.6.4)(@react-native/metro-config@0.84.0(@babel/core@7.29.0))(@types/react@19.1.17)(react@19.1.0))(react@19.1.0):
-    dependencies:
-      expo: 54.0.33(@babel/core@7.29.0)(@expo/metro-runtime@6.1.2)(expo-router@4.0.22)(graphql@15.8.0)(react-native@0.81.0(@babel/core@7.29.0)(@react-native-community/cli@13.6.4)(@react-native/metro-config@0.84.0(@babel/core@7.29.0))(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
-      react: 19.1.0
-      react-native: 0.81.0(@babel/core@7.29.0)(@react-native-community/cli@13.6.4)(@react-native/metro-config@0.84.0(@babel/core@7.29.0))(@types/react@19.1.17)(react@19.1.0)
 
   expo-splash-screen@0.29.24(expo@54.0.33(@babel/core@7.29.0)(@expo/metro-runtime@6.1.2)(expo-router@4.0.22)(graphql@15.8.0)(react-native@0.81.0(@babel/core@7.29.0)(@react-native-community/cli@13.6.4)(@react-native/metro-config@0.84.0(@babel/core@7.29.0))(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)):
     dependencies:
