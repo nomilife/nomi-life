@@ -2,7 +2,10 @@ import { z } from 'zod';
 
 export const timelineItemSchema = z.object({
   id: z.string().uuid(),
-  kind: z.enum(['event', 'bill', 'habit_block', 'journal', 'insight', 'system']),
+  kind: z.enum([
+    'event', 'bill', 'habit_block', 'work_block', 'task', 'appointment',
+    'reminder', 'subscription', 'goal', 'travel', 'journal', 'insight', 'system',
+  ]),
   startAt: z.string().datetime().nullable(),
   endAt: z.string().datetime().nullable(),
   title: z.string(),
@@ -22,7 +25,10 @@ export const timelineResponseSchema = z.object({
 });
 
 export const createTimelineItemSchema = z.object({
-  kind: z.enum(['event', 'bill', 'habit_block', 'journal', 'insight', 'system']),
+  kind: z.enum([
+    'event', 'bill', 'habit_block', 'work_block', 'task', 'appointment',
+    'reminder', 'subscription', 'goal', 'travel', 'journal', 'insight', 'system',
+  ]),
   startAt: z.string().datetime().optional().nullable(),
   endAt: z.string().datetime().optional().nullable(),
   title: z.string().min(1),

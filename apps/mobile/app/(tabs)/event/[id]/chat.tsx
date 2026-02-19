@@ -55,7 +55,8 @@ export default function EventChatScreen() {
     queryKey: ['conversation', id],
     queryFn: () => api<{ conversationId: string; messages: Message[] }>(`/events/${id}/conversation`),
     enabled: !!id,
-    refetchInterval: 5000,
+    refetchInterval: 30000,
+    refetchIntervalInBackground: false,
   });
 
   const postMutation = useMutation({

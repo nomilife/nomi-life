@@ -3,8 +3,6 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import { SUPABASE_CLIENT } from '../supabase/supabase.module';
 import { TimelineService } from '../timeline/timeline.service';
 import { HabitsService } from '../habits/habits.service';
-import * as fs from 'fs';
-import * as path from 'path';
 
 // Runtime check - NOT top-level (ConfigModule loads .env after this file is imported)
 function isAiEnabled(): boolean {
@@ -12,7 +10,20 @@ function isAiEnabled(): boolean {
 }
 
 export interface ParsedAction {
-  action: 'create_event' | 'create_bill' | 'update_bill_amount' | 'create_journal' | 'create_habit' | 'unknown';
+  action:
+    | 'create_event'
+    | 'create_bill'
+    | 'update_bill_amount'
+    | 'create_journal'
+    | 'create_habit'
+    | 'create_work_block'
+    | 'create_task'
+    | 'create_appointment'
+    | 'create_reminder'
+    | 'create_subscription'
+    | 'create_goal'
+    | 'create_travel'
+    | 'unknown';
   data: Record<string, unknown>;
   facts_to_upsert: Array<{ key: string; value: string; confidence: number }>;
 }
@@ -30,8 +41,59 @@ export class AiService {
   }
 
   async parseCommand(text: string): Promise<ParsedAction> {
-    const promptPath = path.join(__dirname, 'prompts', 'parse-command.txt');
-    const prompt = fs.readFileSync(promptPath, 'utf-8');
+    try {
+      return await this._parseCommandImpl(text);
+    } catch (e) {
+      console.error('[AI] parseCommand beklenmeyen hata:', e);
+      return this.fallbackParse(text);
+    }
+  }
+
+  private static readonly PARSE_PROMPT = `Türkçe/İngilizce kullanıcı metnini action JSON'a dönüştür. Sadece JSON çıktı ver. TODAY CONTEXT verilir.
+ÖNCELİK SIRASI: 1) SUBSCRIPTION (Netflix/Spotify/abonelik/ödeme günü) 2) BILL (kira/elektrik/ödendi+amount) 3) HABIT (her sabah) 4) APPOINTMENT (randevu/görüşme) 5) REMINDER (hatırlat) 6) TASK (görev/yapılacak) 7) EVENT 8) WORK_BLOCK 9) GOAL 10) TRAVEL 11) JOURNAL.
+
+SUBSCRIPTION: data: { title, vendor, amount?, billingCycle?, nextBillDate? } — "Spotify son günü", "Netflix 99 lira" → vendor+amount+nextBillDate
+BILL: data: { vendor, amount, dueDate } — "kira 5000 ödendi", "elektrik 300 lira" → vendor+amount. Tutar ZORUNLU.
+HABIT (her/every/daily): action: create_habit, data: { title, schedule: { days: [0-6], time: "HH:mm" } } — 0=pazar
+- "her sabah 8'de meditasyon" = habit 08:00, days [0-6]
+- "her pazartesi 10'da toplantı" = habit, days [1]
+
+EVENT (one-time + time): action: create_event, data: { title, startDate, startTime, endTime, location }
+- "akşam 20.00'de maç" = today 20:00
+- "çarşamba akşamı buluşma" = that Wednesday 20:00
+
+BILL (ödendi/ödedim/fatura): action: create_bill, data: { vendor, amount, dueDate }
+- "kira 5000 ödendi", "elektrik 300 lira" → vendor + amount
+
+TASK (görev/task/yapılacak): action: create_task, data: { title, dueDate, dueTime?, priority? }
+- "yarın doktora gitme" = task with dueDate tomorrow
+- "bu hafta rapor yaz" = task
+
+APPOINTMENT (randevu, görüşme, doktor + tarih): data: { title, startDate, startTime, endTime, location?, withWhom? }
+REMINDER (hatırlat, hatırlatıcı, unutma): data: { title, remindAt, recurrence?: "once"|"daily"|"weekly" } — Abonelik DEĞİL
+
+SUBSCRIPTION (abonelik - streaming, üyelik): action: create_subscription, data: { title, vendor, amount?, billingCycle?, nextBillDate? }
+- Netflix, Spotify, Disney+, YouTube Premium, Apple Music, beIN, Digiturk, EnerjiSA abonelik vb. → ALWAYS create_subscription
+- "Netflix ödeme günü", "Spotify yarın kesilecek", "yarın Netflix ücreti" → create_subscription with vendor=Netflix, nextBillDate=tomorrow
+- ÖDEME GÜNÜ + bilinen hizmet adı = subscription, NOT reminder
+
+WORK_BLOCK (çalışma bloku/deep work): action: create_work_block, data: { title, startAt, endAt, project? }
+
+GOAL (hedef): action: create_goal, data: { title, targetDate?, lifeArea? }
+
+TRAVEL (seyahat/uçuş): action: create_travel, data: { title, origin?, destination, departureAt?, arrivalAt? }
+
+JOURNAL (günlük/journal): action: create_journal, data: { title, content, mood? }
+
+TR TIME: akşam=20, sabah=09, öğlen=12. "akşam 8"=20:00, "saat 20"=20:00
+TR DAYS: pazartesi..pazar. "çarşamba" = next Wed from today.
+Never 09:00 for "akşam". Never today when user said "çarşamba".
+
+Output: { "action": "create_event"|"create_bill"|"create_habit"|"create_task"|"create_appointment"|"create_reminder"|"create_work_block"|"create_subscription"|"create_goal"|"create_travel"|"create_journal"|"unknown", "data": {...}, "facts_to_upsert": [] }
+`;
+
+  private async _parseCommandImpl(text: string): Promise<ParsedAction> {
+    const prompt = AiService.PARSE_PROMPT;
 
     if (isAiEnabled()) {
       console.log('[AI] 🤖 OpenAI aktif – parse-command çağrılıyor:', JSON.stringify(text));
@@ -56,19 +118,22 @@ export class AiService {
         let parsed = this.normalizeParsedAction(json);
         // Post-process: "her sabah X" should be create_habit, not create_event
         parsed = this.ensureHabitForRecurring(parsed, text);
+        // Post-process: Netflix/Spotify/ödeme günü → subscription, not reminder
+        parsed = this.ensureSubscriptionForStreaming(parsed, text);
         // Post-process: fix date/time using Turkish extraction (AI sometimes ignores TR)
-        const result = parsed.action === 'create_event'
+        let result = parsed.action === 'create_event'
           ? this.correctParsedWithTurkish(parsed, text)
           : parsed;
+        result = this.correctParsedDatesForAll(result, text);
         console.log('[AI] ✅ OpenAI cevap verdi:', JSON.stringify(result.data));
         return result;
       } catch (e) {
         console.error('[AI] ❌ OpenAI hata, fallback kullanılıyor:', e);
-        return this.fallbackParse(text);
+        return this.ensureSubscriptionForStreaming(this.fallbackParse(text), text);
       }
     }
     console.log('[AI] ⚠️ OpenAI key yok (.env OPENAI_API_KEY), fallback parser kullanılıyor:', JSON.stringify(text));
-    return this.fallbackParse(text);
+    return this.ensureSubscriptionForStreaming(this.fallbackParse(text), text);
   }
 
   async chat(userId: string, messages: Array<{ role: string; content: string }>): Promise<{ content: string }> {
@@ -182,6 +247,34 @@ Uzun paragraflardan kaçın; 1-3 cümle yeterli.${calendarContext}`;
     };
   }
 
+  /** Netflix, Spotify, ödeme günü vb. → subscription, not reminder */
+  private ensureSubscriptionForStreaming(parsed: ParsedAction, text: string): ParsedAction {
+    const subKeywords = /\b(netflix|spotify|disney\+?|youtube\s*premium|apple\s*music|bein|digiturk|abonelik|ödeme\s*günü|ücret\s*kesilecek)\b/i;
+    const shouldBeSubscription = subKeywords.test(text);
+    if (!shouldBeSubscription) return parsed;
+    if (parsed.action !== 'create_reminder' && parsed.action !== 'unknown') return parsed;
+    const d = parsed.data;
+    const vendorMatch = text.match(/\b(netflix|spotify|disney\+?|youtube\s*premium|apple\s*music|bein|digiturk)\b/i);
+    const vendor = vendorMatch
+      ? vendorMatch[1].charAt(0).toUpperCase() + vendorMatch[1].slice(1).toLowerCase().replace(/\s+/g, ' ')
+      : ((d.title as string) ?? 'Abonelik').split(/\s+/)[0] ?? 'Abonelik';
+    const title = (d.title as string) ?? `${vendor} aboneliği`;
+    let dateStr = (d.remindAt as string) ?? (d.startDate as string);
+    if (!dateStr && /\b(yarın|tomorrow)\b/i.test(text)) {
+      const t = new Date();
+      t.setDate(t.getDate() + 1);
+      dateStr = t.toISOString().slice(0, 10);
+    }
+    const nextBillDate = dateStr ? String(dateStr).slice(0, 10) : new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+    const amountMatch = text.match(/(\d[\d.,]*)\s*(?:tl|lira|₺|try)?/i) ?? text.match(/(\d+)/);
+    const amount = amountMatch ? parseFloat(amountMatch[1].replace(/\s/g, '').replace(',', '.')) : (d.amount as number) ?? null;
+    return {
+      action: 'create_subscription',
+      data: { title, vendor, amount: Number.isNaN(amount) ? null : amount, billingCycle: 'monthly', nextBillDate },
+      facts_to_upsert: parsed.facts_to_upsert,
+    };
+  }
+
   private correctParsedWithTurkish(parsed: ParsedAction, text: string): ParsedAction {
     const d = this.extractTurkishDate(text);
     const t = this.extractTurkishTime(text);
@@ -197,6 +290,26 @@ Uzun paragraflardan kaçın; 1-3 cümle yeterli.${calendarContext}`;
       data.startTime = `${String(t.hour).padStart(2, '0')}:${String(t.min).padStart(2, '0')}`;
       const endHour = t.hour + 1;
       data.endTime = `${String(endHour > 23 ? 23 : endHour).padStart(2, '0')}:${String(t.min).padStart(2, '0')}`;
+    }
+    return { ...parsed, data };
+  }
+
+  /** Apply Turkish date/time extraction to parsed data when AI missed it */
+  private correctParsedDatesForAll(parsed: ParsedAction, text: string): ParsedAction {
+    const trDate = this.extractTurkishDate(text);
+    const trTime = this.extractTurkishTime(text);
+    if (!trDate && !trTime) return parsed;
+    const data = { ...parsed.data };
+    const timeStr = trTime ? `${String(trTime.hour).padStart(2, '0')}:${String(trTime.min).padStart(2, '0')}` : '09:00';
+    const dateStr = trDate ?? new Date().toISOString().slice(0, 10);
+    if (parsed.action === 'create_bill' && !data.dueDate) data.dueDate = dateStr;
+    if (parsed.action === 'create_task' && !data.dueDate) data.dueDate = dateStr;
+    if (parsed.action === 'create_reminder' && !data.remindAt) data.remindAt = `${dateStr}T${timeStr}:00`;
+    if (parsed.action === 'create_subscription' && !data.nextBillDate) data.nextBillDate = dateStr;
+    if (parsed.action === 'create_goal' && !data.targetDate) data.targetDate = dateStr;
+    if ((parsed.action === 'create_appointment' || parsed.action === 'create_work_block' || parsed.action === 'create_event') && !data.startDate) {
+      data.startDate = dateStr;
+      if (trTime) data.startTime = timeStr;
     }
     return { ...parsed, data };
   }
@@ -227,7 +340,11 @@ Uzun paragraflardan kaçın; 1-3 cümle yeterli.${calendarContext}`;
 
   private normalizeParsedAction(json: Record<string, unknown>): ParsedAction {
     const action = (json.action as string) ?? 'unknown';
-    const valid = ['create_event', 'create_bill', 'update_bill_amount', 'create_journal', 'create_habit', 'unknown'];
+    const valid = [
+      'create_event', 'create_bill', 'update_bill_amount', 'create_journal', 'create_habit',
+      'create_work_block', 'create_task', 'create_appointment', 'create_reminder',
+      'create_subscription', 'create_goal', 'create_travel', 'unknown',
+    ];
     const normalizedAction = valid.includes(action) ? action : 'unknown';
     return {
       action: normalizedAction as ParsedAction['action'],
@@ -297,6 +414,41 @@ Uzun paragraflardan kaçın; 1-3 cümle yeterli.${calendarContext}`;
         },
         facts_to_upsert: [],
       };
+    }
+
+    // create_reminder: hatırlat, remind
+    if (/\b(hatırlat|remind|reminder)\b/i.test(text)) {
+      const d = new Date(dateStr + 'T12:00:00');
+      d.setHours(trTime?.hour ?? 9, trTime?.min ?? 0, 0, 0);
+      return {
+        action: 'create_reminder',
+        data: { title: title || 'Hatırlatıcı', remindAt: d.toISOString(), recurrence: 'once' },
+        facts_to_upsert: [],
+      };
+    }
+
+    // create_task: görev, task
+    if (/\b(görev|task|yapılacak|todo)\b/i.test(text) && title) {
+      return {
+        action: 'create_task',
+        data: {
+          title: title || 'Görev',
+          dueDate: dateStr,
+          dueTime: trTime ? `${String(trTime.hour).padStart(2, '0')}:${String(trTime.min).padStart(2, '0')}` : null,
+          priority: 'normal',
+        },
+        facts_to_upsert: [],
+      };
+    }
+
+    // create_goal: hedef
+    if (/\b(hedef|goal)\b/i.test(text) && title) {
+      return { action: 'create_goal', data: { title: title || 'Hedef', targetDate: dateStr }, facts_to_upsert: [] };
+    }
+
+    // create_journal: günlük, journal
+    if (/\b(günlük|journal|günlük yaz)\b/i.test(text)) {
+      return { action: 'create_journal', data: { title: title || 'Günlük', content: text }, facts_to_upsert: [] };
     }
 
     // create_bill: ödendi, ödedim, fatura + amount

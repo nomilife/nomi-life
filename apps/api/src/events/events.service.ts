@@ -100,7 +100,11 @@ export class EventsService {
       }
     }
 
-    return this.getEvent(userId, ev.timeline_item_id);
+    try {
+      return await this.getEvent(userId, ev.timeline_item_id);
+    } catch {
+      return { id: ev.timeline_item_id, title: dto.title, startAt: dto.startAt, endAt: dto.endAt, location: dto.location, visibility: dto.visibility };
+    }
   }
 
   async getInvites(userId: string) {

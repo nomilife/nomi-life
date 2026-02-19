@@ -55,6 +55,14 @@ export class TimelineService {
     }
     const billIds = rows.filter((r) => r.kind === 'bill').map((r) => r.id);
     const eventIds = rows.filter((r) => r.kind === 'event').map((r) => r.id);
+    const workBlockIds = rows.filter((r) => r.kind === 'work_block').map((r) => r.id);
+    const taskIds = rows.filter((r) => r.kind === 'task').map((r) => r.id);
+    const appointmentIds = rows.filter((r) => r.kind === 'appointment').map((r) => r.id);
+    const reminderIds = rows.filter((r) => r.kind === 'reminder').map((r) => r.id);
+    const subscriptionIds = rows.filter((r) => r.kind === 'subscription').map((r) => r.id);
+    const goalIds = rows.filter((r) => r.kind === 'goal').map((r) => r.id);
+    const travelIds = rows.filter((r) => r.kind === 'travel').map((r) => r.id);
+    const journalIds = rows.filter((r) => r.kind === 'journal').map((r) => r.id);
 
     let billsMap: Record<string, Record<string, unknown>> = {};
     if (billIds.length) {
@@ -66,6 +74,17 @@ export class TimelineService {
         billsMap[(b as Record<string, unknown>).timeline_item_id as string] = b as Record<string, unknown>;
       }
     }
+
+    const detailMaps = await this.fetchDetailMaps({
+      work_blocks: workBlockIds,
+      tasks: taskIds,
+      appointments: appointmentIds,
+      reminders: reminderIds,
+      subscriptions: subscriptionIds,
+      goals: goalIds,
+      travel: travelIds,
+      journals: journalIds,
+    });
 
     let eventsMap: Record<string, Record<string, unknown>> = {};
     const participantsByEvent: Record<string, Array<{ email?: string; displayName?: string }>> = {};
@@ -116,6 +135,16 @@ export class TimelineService {
       .eq('user_id', userId)
       .eq('active', true);
 
+    const { data: entriesRows } = await this.supabase
+      .from('habit_entries')
+      .select('habit_id, status')
+      .eq('user_id', userId)
+      .eq('date', dateStr);
+    const entriesByHabit: Record<string, string> = {};
+    for (const e of entriesRows ?? []) {
+      entriesByHabit[(e as Record<string, string>).habit_id] = (e as Record<string, string>).status;
+    }
+
     const habitBlocks: TimelineItemDto[] = [];
     for (const h of habitsRows ?? []) {
       const sched = (h.schedule as { days?: number[]; time?: string }) ?? {};
@@ -125,6 +154,7 @@ export class TimelineService {
       const [th, tm] = time.split(':').map(Number);
       const startAt = `${dateStr}T${String(th).padStart(2, '0')}:${String(tm ?? 0).padStart(2, '0')}:00.000Z`;
       const endAt = `${dateStr}T${String((th + 1) % 24).padStart(2, '0')}:${String(tm ?? 0).padStart(2, '0')}:00.000Z`;
+      const todayStatus = entriesByHabit[h.id as string] ?? null;
       habitBlocks.push({
         id: h.id as string,
         kind: 'habit_block',
@@ -133,7 +163,7 @@ export class TimelineService {
         title: h.title as string,
         summary: null,
         status: 'scheduled',
-        metadata: { habitId: h.id },
+        metadata: { habitId: h.id, todayStatus },
       });
     }
 
@@ -167,10 +197,48 @@ export class TimelineService {
             },
           };
         }
+        if (row.kind === 'work_block' && detailMaps.work_blocks[row.id]) {
+          const w = detailMaps.work_blocks[row.id];
+          return { ...base, project: w.project };
+        }
+        if (row.kind === 'task' && detailMaps.tasks[row.id]) {
+          const t = detailMaps.tasks[row.id];
+          return { ...base, dueDate: t.due_date, priority: t.priority, completedAt: t.completed_at, lifeArea: t.life_area };
+        }
+        if (row.kind === 'appointment' && detailMaps.appointments[row.id]) {
+          const a = detailMaps.appointments[row.id];
+          return { ...base, location: a.location, withWhom: a.with_whom };
+        }
+        if (row.kind === 'reminder' && detailMaps.reminders[row.id]) {
+          const r = detailMaps.reminders[row.id];
+          return { ...base, remindAt: r.remind_at, recurrence: r.recurrence };
+        }
+        if (row.kind === 'subscription' && detailMaps.subscriptions[row.id]) {
+          const s = detailMaps.subscriptions[row.id];
+          return { ...base, vendor: s.vendor, amount: s.amount, nextBillDate: s.next_bill_date, billingCycle: s.billing_cycle };
+        }
+        if (row.kind === 'goal' && detailMaps.goals[row.id]) {
+          const g = detailMaps.goals[row.id];
+          return { ...base, targetDate: g.target_date, lifeArea: g.life_area, progress: g.progress };
+        }
+        if (row.kind === 'travel' && detailMaps.travel[row.id]) {
+          const t = detailMaps.travel[row.id];
+          return { ...base, origin: t.origin, destination: t.destination, departureAt: t.departure_at, arrivalAt: t.arrival_at };
+        }
+        if (row.kind === 'journal' && detailMaps.journals[row.id]) {
+          const j = detailMaps.journals[row.id];
+          return { ...base, content: j.content, mood: j.mood };
+        }
         return base;
       })
       .filter((item) => {
         if (item.kind === 'bill' && (item as Record<string, unknown>).dueDate) {
+          return String((item as Record<string, unknown>).dueDate).slice(0, 10) === dateStr;
+        }
+        if (item.kind === 'subscription' && (item as Record<string, unknown>).nextBillDate) {
+          return String((item as Record<string, unknown>).nextBillDate).slice(0, 10) === dateStr;
+        }
+        if (item.kind === 'task' && (item as Record<string, unknown>).dueDate) {
           return String((item as Record<string, unknown>).dueDate).slice(0, 10) === dateStr;
         }
         return true;
@@ -321,6 +389,74 @@ export class TimelineService {
       eventsCount,
       socialEventsCount,
       billsTotal,
+    };
+  }
+
+  private async fetchDetailMaps(ids: {
+    work_blocks: string[];
+    tasks: string[];
+    appointments: string[];
+    reminders: string[];
+    subscriptions: string[];
+    goals: string[];
+    travel: string[];
+    journals: string[];
+  }): Promise<{
+    work_blocks: Record<string, Record<string, unknown>>;
+    tasks: Record<string, Record<string, unknown>>;
+    appointments: Record<string, Record<string, unknown>>;
+    reminders: Record<string, Record<string, unknown>>;
+    subscriptions: Record<string, Record<string, unknown>>;
+    goals: Record<string, Record<string, unknown>>;
+    travel: Record<string, Record<string, unknown>>;
+    journals: Record<string, Record<string, unknown>>;
+  }> {
+    const empty = (): Record<string, Record<string, unknown>> => ({});
+
+    const [workBlocks, tasks, appointments, reminders, subscriptions, goals, travel, journals] = await Promise.all([
+      ids.work_blocks.length
+        ? this.supabase.from('work_blocks').select('timeline_item_id, project').in('timeline_item_id', ids.work_blocks)
+        : { data: [] },
+      ids.tasks.length
+        ? this.supabase.from('tasks').select('timeline_item_id, due_date, priority, completed_at, life_area').in('timeline_item_id', ids.tasks)
+        : { data: [] },
+      ids.appointments.length
+        ? this.supabase.from('appointments').select('timeline_item_id, location, with_whom').in('timeline_item_id', ids.appointments)
+        : { data: [] },
+      ids.reminders.length
+        ? this.supabase.from('reminders').select('timeline_item_id, remind_at, recurrence').in('timeline_item_id', ids.reminders)
+        : { data: [] },
+      ids.subscriptions.length
+        ? this.supabase.from('subscriptions').select('timeline_item_id, vendor, amount, next_bill_date, billing_cycle').in('timeline_item_id', ids.subscriptions)
+        : { data: [] },
+      ids.goals.length
+        ? this.supabase.from('goals').select('timeline_item_id, target_date, life_area, progress').in('timeline_item_id', ids.goals)
+        : { data: [] },
+      ids.travel.length
+        ? this.supabase.from('travel').select('timeline_item_id, origin, destination, departure_at, arrival_at').in('timeline_item_id', ids.travel)
+        : { data: [] },
+      ids.journals.length
+        ? this.supabase.from('journals').select('timeline_item_id, content, mood').in('timeline_item_id', ids.journals)
+        : { data: [] },
+    ]);
+
+    const toMap = (data: Array<Record<string, unknown>>, key: string): Record<string, Record<string, unknown>> => {
+      const m: Record<string, Record<string, unknown>> = {};
+      for (const r of data) {
+        m[r[key] as string] = r;
+      }
+      return m;
+    };
+
+    return {
+      work_blocks: workBlocks.data?.length ? toMap(workBlocks.data as Array<Record<string, unknown>>, 'timeline_item_id') : empty(),
+      tasks: tasks.data?.length ? toMap(tasks.data as Array<Record<string, unknown>>, 'timeline_item_id') : empty(),
+      appointments: appointments.data?.length ? toMap(appointments.data as Array<Record<string, unknown>>, 'timeline_item_id') : empty(),
+      reminders: reminders.data?.length ? toMap(reminders.data as Array<Record<string, unknown>>, 'timeline_item_id') : empty(),
+      subscriptions: subscriptions.data?.length ? toMap(subscriptions.data as Array<Record<string, unknown>>, 'timeline_item_id') : empty(),
+      goals: goals.data?.length ? toMap(goals.data as Array<Record<string, unknown>>, 'timeline_item_id') : empty(),
+      travel: travel.data?.length ? toMap(travel.data as Array<Record<string, unknown>>, 'timeline_item_id') : empty(),
+      journals: journals.data?.length ? toMap(journals.data as Array<Record<string, unknown>>, 'timeline_item_id') : empty(),
     };
   }
 

@@ -1,8 +1,9 @@
 import { useRef } from 'react';
 import { View, PanResponder } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useRouter } from 'expo-router';
 
 const TAB_ORDER = ['flow', 'insights', 'inbox', 'system'] as const;
+const TAB_ROUTES = ['/(tabs)/flow', '/(tabs)/insights', '/(tabs)/inbox', '/(tabs)/system'] as const;
 
 interface SwipeableTabContentProps {
   children: React.ReactNode;
@@ -12,7 +13,7 @@ interface SwipeableTabContentProps {
 
 /** Ana sekmeler arasında yatay kaydırma ile geçiş sağlar */
 export function SwipeableTabContent({ children, currentTab }: SwipeableTabContentProps) {
-  const navigation = useNavigation();
+  const router = useRouter();
   const startX = useRef(0);
 
   const idx = TAB_ORDER.indexOf(currentTab);
@@ -34,10 +35,10 @@ export function SwipeableTabContent({ children, currentTab }: SwipeableTabConten
         const threshold = 60;
         if (dx > threshold) {
           const prevIdx = idx <= 0 ? TAB_ORDER.length - 1 : idx - 1;
-          navigation.navigate(TAB_ORDER[prevIdx] as never);
+          router.push(TAB_ROUTES[prevIdx] as never);
         } else if (dx < -threshold) {
           const nextIdx = idx >= TAB_ORDER.length - 1 ? 0 : idx + 1;
-          navigation.navigate(TAB_ORDER[nextIdx] as never);
+          router.push(TAB_ROUTES[nextIdx] as never);
         }
       },
     })

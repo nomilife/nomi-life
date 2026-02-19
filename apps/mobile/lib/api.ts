@@ -95,6 +95,7 @@ export async function api<T>(
       ...fetchOptions,
       headers: { ...headers, ...(options.headers as Record<string, string>) },
       signal: controller.signal,
+      cache: 'no-store',
     });
   } catch (e) {
     clearTimeout(timeout);
@@ -110,6 +111,9 @@ export async function api<T>(
   }
 
   if (!res.ok) {
+    if (res.status === 304) {
+      throw new Error('Önbellek hatası. Sayfayı yenileyip tekrar deneyin.');
+    }
     const err = await res.json().catch(() => ({}));
     throw new Error((err as { message?: string }).message ?? res.statusText ?? 'Request failed');
   }

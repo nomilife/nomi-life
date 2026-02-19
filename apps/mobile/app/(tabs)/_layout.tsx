@@ -79,6 +79,13 @@ export default function TabsLayout() {
       <Tabs.Screen name="bill/[id]" options={{ href: null }} />
       <Tabs.Screen name="habit-create" options={{ href: null, title: t('newHabit') }} />
       <Tabs.Screen name="habit/[id]" options={{ href: null }} />
+      <Tabs.Screen name="work-create" options={{ href: null, title: 'New Work Block' }} />
+      <Tabs.Screen name="appointment-create" options={{ href: null, title: 'New Appointment' }} />
+      <Tabs.Screen name="reminder-create" options={{ href: null, title: 'New Reminder' }} />
+      <Tabs.Screen name="subscription-create" options={{ href: null, title: 'New Subscription' }} />
+      <Tabs.Screen name="travel-create" options={{ href: null, title: 'New Travel' }} />
+      <Tabs.Screen name="journal-create" options={{ href: null, title: 'New Journal' }} />
+      <Tabs.Screen name="item/[id]" options={{ href: null, title: 'Detay' }} />
     </Tabs>
   );
 }

@@ -10,26 +10,46 @@ build
 *.log
 npm-debug.log*
 pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
-# Environment – ASLA commit etme (API key, Supabase credentials)
+# Environment – ASLA commit etme (API key, Supabase, OpenAI vb.)
 .env
 .env.*
 !.env.example
 
+# Secrets / keys
+*.pem
+*.key
+secrets/
+.secrets
+credentials.json
+google-services.json
+GoogleService-Info.plist
+
 # OS
 .DS_Store
 Thumbs.db
+*.swp
+*~
 
 # IDE / Editor
 .idea
 .vscode/*
 !.vscode/extensions.json
 !.vscode/settings.json
+*.sublime-*
 
 # Supabase local
 supabase/.temp
 supabase/.branches
 
+# Android (local SDK path, signing keys)
+android/local.properties
+android/*.keystore
+android/.gradle/
+
 # Misc
 *.tsbuildinfo
 .cache
+.turbo

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { View, ScrollView, Pressable } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import dayjs from 'dayjs';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -23,6 +24,17 @@ type Insights = {
   eventsCount: number;
   socialEventsCount: number;
   billsTotal: number;
+};
+
+type Subscription = {
+  id: string;
+  title: string;
+  vendor: string;
+  amount: number | null;
+  currency: string;
+  billingCycle: string;
+  nextBillDate: string | null;
+  autopay?: boolean;
 };
 
 // Simple radar-style labels around a circular progress
@@ -75,6 +87,12 @@ export default function InsightsScreen() {
     retry: 2,
     retryDelay: 1000,
     staleTime: 60_000,
+  });
+
+  const { data: subscriptions = [] } = useQuery({
+    queryKey: ['subscriptions', 'all'],
+    queryFn: ({ signal }) => api<Subscription[]>('/subscriptions', { signal }),
+    staleTime: 30_000,
   });
 
   if (isLoading) return <LoadingState />;
@@ -161,6 +179,77 @@ export default function InsightsScreen() {
             <AppText variant="h1" style={{ color: theme.colors.success }}>+12%</AppText>
           </View>
         </View>
+      </View>
+
+      {/* Aboneliklerim */}
+      <View
+        style={{
+          backgroundColor: theme.colors.surface,
+          borderRadius: theme.radius.xl,
+          padding: theme.spacing.lg,
+          marginBottom: theme.spacing.lg,
+          borderWidth: 1,
+          borderColor: theme.colors.border,
+        }}
+      >
+        <SectionHeader title="Aboneliklerim" style={{ marginBottom: theme.spacing.md }} />
+        {subscriptions.length === 0 ? (
+          <AppText variant="body" color="muted">Henüz abonelik yok</AppText>
+        ) : (
+          <>
+            {subscriptions.map((s) => {
+              const amt = s.amount ?? 0;
+              const monthlyAmt = (s.billingCycle || '').toLowerCase().includes('year')
+                ? amt / 12
+                : amt;
+              return (
+                <View
+                  key={s.id}
+                  style={{
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    paddingVertical: theme.spacing.sm,
+                    borderBottomWidth: 1,
+                    borderBottomColor: theme.colors.border,
+                  }}
+                >
+                  <View>
+                    <AppText variant="body" style={{ color: theme.colors.textPrimary }}>{s.vendor || s.title}</AppText>
+                    <AppText variant="small" color="muted">
+                      {s.nextBillDate ? dayjs(s.nextBillDate).format('DD MMM YYYY') : '—'} • {s.billingCycle ?? 'monthly'}
+                    </AppText>
+                  </View>
+                  <AppText variant="body" style={{ color: theme.colors.textPrimary, fontWeight: '600' }}>
+                    ₺{monthlyAmt.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                  </AppText>
+                </View>
+              );
+            })}
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                paddingTop: theme.spacing.md,
+                marginTop: theme.spacing.xs,
+                borderTopWidth: 2,
+                borderTopColor: theme.colors.border,
+              }}
+            >
+              <AppText variant="h3" style={{ color: theme.colors.textPrimary }}>Toplam (aylık)</AppText>
+              <AppText variant="h2" style={{ color: theme.colors.primary }}>
+                ₺{subscriptions
+                  .reduce((sum, s) => {
+                    const amt = s.amount ?? 0;
+                    const monthly = (s.billingCycle || '').toLowerCase().includes('year') ? amt / 12 : amt;
+                    return sum + monthly;
+                  }, 0)
+                  .toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+              </AppText>
+            </View>
+          </>
+        )}
       </View>
 
       {/* Key metrics: Sleep Quality, Budget left */}

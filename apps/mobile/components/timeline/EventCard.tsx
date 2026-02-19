@@ -13,7 +13,7 @@ interface EventCardProps {
   title: string;
   disableNavigation?: boolean;
   onPress?: () => void;
-  kind?: 'event' | 'habit_block';
+  kind?: 'event' | 'habit_block' | 'work_block' | 'task' | 'appointment' | 'reminder' | 'subscription' | 'goal' | 'travel' | 'journal';
   compact?: boolean;
   /** Stitch glass style + left border */
   glass?: boolean;

@@ -153,8 +153,12 @@ export default function VoiceScreen() {
   const [text, setText] = useState('');
   const [parsed, setParsed] = useState<ParsedAction | null>(null);
   const [isRecording, setIsRecording] = useState(false);
+  const [subscriptionAmount, setSubscriptionAmount] = useState('');
+  const [billAmount, setBillAmount] = useState('');
   const speechRecRef = useRef<{ stop: () => void } | null>(null);
   const inputRef = useRef<TextInput>(null);
+  const isRecordingRef = useRef(false);
+  isRecordingRef.current = isRecording;
 
   const parseMutation = useMutation({
     mutationFn: async (input: string) =>
@@ -170,6 +174,8 @@ export default function VoiceScreen() {
         return;
       }
       setParsed(data);
+      setSubscriptionAmount(data.action === 'create_subscription' && data.data?.amount != null ? String(data.data.amount) : '');
+      setBillAmount(data.action === 'create_bill' && data.data?.amount != null ? String(data.data.amount) : '');
     },
     onError: (e) => {
       const msg = (e as Error).message;
@@ -185,7 +191,7 @@ export default function VoiceScreen() {
 
   const createEventMutation = useMutation({
     mutationFn: (body: Record<string, unknown>) =>
-      api('/events', { method: 'POST', body: JSON.stringify(body) }),
+      api('/ai/create-event', { method: 'POST', body: JSON.stringify(body) }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['timeline'] });
       router.back();
@@ -213,6 +219,95 @@ export default function VoiceScreen() {
       api('/bills', { method: 'POST', body: JSON.stringify(body) }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bills'] });
+      queryClient.invalidateQueries({ queryKey: ['timeline'] });
+      router.back();
+    },
+    onError: (e) => {
+      Alert.alert(t('error'), (e as Error).message);
+    },
+  });
+
+  const createTaskMutation = useMutation({
+    mutationFn: (body: Record<string, unknown>) =>
+      api('/tasks', { method: 'POST', body: JSON.stringify(body) }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['timeline'] });
+      router.back();
+    },
+    onError: (e) => {
+      Alert.alert(t('error'), (e as Error).message);
+    },
+  });
+  const createWorkBlockMutation = useMutation({
+    mutationFn: (body: Record<string, unknown>) =>
+      api('/work-blocks', { method: 'POST', body: JSON.stringify(body) }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['timeline'] });
+      router.back();
+    },
+    onError: (e) => {
+      Alert.alert(t('error'), (e as Error).message);
+    },
+  });
+  const createAppointmentMutation = useMutation({
+    mutationFn: (body: Record<string, unknown>) =>
+      api('/appointments', { method: 'POST', body: JSON.stringify(body) }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['timeline'] });
+      router.back();
+    },
+    onError: (e) => {
+      Alert.alert(t('error'), (e as Error).message);
+    },
+  });
+  const createReminderMutation = useMutation({
+    mutationFn: (body: Record<string, unknown>) =>
+      api('/reminders', { method: 'POST', body: JSON.stringify(body) }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['timeline'] });
+      router.back();
+    },
+    onError: (e) => {
+      Alert.alert(t('error'), (e as Error).message);
+    },
+  });
+  const createSubscriptionMutation = useMutation({
+    mutationFn: (body: Record<string, unknown>) =>
+      api('/subscriptions', { method: 'POST', body: JSON.stringify(body) }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['timeline'] });
+      router.back();
+    },
+    onError: (e) => {
+      Alert.alert(t('error'), (e as Error).message);
+    },
+  });
+  const createGoalMutation = useMutation({
+    mutationFn: (body: Record<string, unknown>) =>
+      api('/goals', { method: 'POST', body: JSON.stringify(body) }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['timeline'] });
+      router.back();
+    },
+    onError: (e) => {
+      Alert.alert(t('error'), (e as Error).message);
+    },
+  });
+  const createTravelMutation = useMutation({
+    mutationFn: (body: Record<string, unknown>) =>
+      api('/travel', { method: 'POST', body: JSON.stringify(body) }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['timeline'] });
+      router.back();
+    },
+    onError: (e) => {
+      Alert.alert(t('error'), (e as Error).message);
+    },
+  });
+  const createJournalMutation = useMutation({
+    mutationFn: (body: Record<string, unknown>) =>
+      api('/journals', { method: 'POST', body: JSON.stringify(body) }),
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['timeline'] });
       router.back();
     },
@@ -252,9 +347,9 @@ export default function VoiceScreen() {
         },
       });
     } else if (parsed.action === 'create_bill') {
-      const rawAmount = d.amount;
-      const amount =
-        typeof rawAmount === 'number' ? rawAmount : typeof rawAmount === 'string' ? parseFloat(rawAmount) || null : null;
+      const amount = billAmount.trim()
+        ? parseFloat(billAmount.replace(',', '.')) || null
+        : (typeof d.amount === 'number' ? d.amount : typeof d.amount === 'string' ? parseFloat(d.amount) || null : null);
       const due = (d.dueDate as string) ?? dayjs().endOf('month').format('YYYY-MM-DD');
       createBillMutation.mutate({
         vendor: (d.vendor as string) ?? 'Gider',
@@ -262,6 +357,78 @@ export default function VoiceScreen() {
         dueDate: due,
         recurrence: (d.recurrence as string) ?? 'monthly',
         autopay: false,
+      });
+    } else if (parsed.action === 'create_task') {
+      const startDate = (d.startDate as string) ?? dayjs().format('YYYY-MM-DD');
+      const startTime = (d.startTime as string) ?? '09:00';
+      createTaskMutation.mutate({
+        title: (d.title as string) ?? 'Task',
+        dueDate: (d.dueDate as string) ?? startDate,
+        dueTime: startTime,
+        priority: (d.priority as string) ?? 'normal',
+      });
+    } else if (parsed.action === 'create_work_block') {
+      const startDate = (d.startDate as string) ?? dayjs().format('YYYY-MM-DD');
+      const startTime = (d.startTime as string) ?? '09:00';
+      const endTime = (d.endTime as string) ?? '10:00';
+      const startAt = `${startDate}T${startTime}:00`;
+      const endAt = `${startDate}T${endTime}:00`;
+      createWorkBlockMutation.mutate({
+        title: (d.title as string) ?? 'Work',
+        startAt: dayjs(startAt).toISOString(),
+        endAt: dayjs(endAt).toISOString(),
+        project: (d.project as string) ?? null,
+      });
+    } else if (parsed.action === 'create_appointment') {
+      const startDate = (d.startDate as string) ?? dayjs().format('YYYY-MM-DD');
+      const startTime = (d.startTime as string) ?? '09:00';
+      const endTime = (d.endTime as string) ?? '10:00';
+      const startAt = `${startDate}T${startTime}:00`;
+      const endAt = `${startDate}T${endTime}:00`;
+      createAppointmentMutation.mutate({
+        title: (d.title as string) ?? 'Appointment',
+        startAt: dayjs(startAt).toISOString(),
+        endAt: dayjs(endAt).toISOString(),
+        location: (d.location as string) ?? null,
+        withWhom: (d.withWhom as string) ?? null,
+      });
+    } else if (parsed.action === 'create_reminder') {
+      const remindAt = (d.remindAt as string) ?? `${(d.startDate as string) ?? dayjs().format('YYYY-MM-DD')}T${(d.startTime as string) ?? '09:00'}:00`;
+      createReminderMutation.mutate({
+        title: (d.title as string) ?? 'Reminder',
+        remindAt: dayjs(remindAt).toISOString(),
+        recurrence: (d.recurrence as string) ?? 'once',
+      });
+    } else if (parsed.action === 'create_subscription') {
+      const amount = subscriptionAmount.trim()
+        ? parseFloat(subscriptionAmount.replace(',', '.')) || null
+        : (typeof d.amount === 'number' ? d.amount : typeof d.amount === 'string' ? parseFloat(d.amount) || null : null);
+      createSubscriptionMutation.mutate({
+        title: (d.title as string) ?? (d.vendor as string) ?? 'Subscription',
+        vendor: (d.vendor as string) ?? 'Vendor',
+        amount,
+        billingCycle: (d.billingCycle as string) ?? 'monthly',
+        nextBillDate: (d.nextBillDate as string) ?? dayjs().add(1, 'month').format('YYYY-MM-DD'),
+      });
+    } else if (parsed.action === 'create_goal') {
+      createGoalMutation.mutate({
+        title: (d.title as string) ?? 'Goal',
+        targetDate: (d.targetDate as string) ?? null,
+        lifeArea: (d.lifeArea as string) ?? null,
+      });
+    } else if (parsed.action === 'create_travel') {
+      createTravelMutation.mutate({
+        title: (d.title as string) ?? 'Travel',
+        origin: (d.origin as string) ?? null,
+        destination: (d.destination as string) ?? (d.title as string) ?? 'Destination',
+        departureAt: (d.departureAt as string) ? dayjs(d.departureAt as string).toISOString() : null,
+        arrivalAt: (d.arrivalAt as string) ? dayjs(d.arrivalAt as string).toISOString() : null,
+      });
+    } else if (parsed.action === 'create_journal') {
+      createJournalMutation.mutate({
+        title: (d.title as string) ?? 'Journal',
+        content: (d.content as string) ?? (d.title as string) ?? 'Entry',
+        mood: (d.mood as string) ?? null,
       });
     }
   };
@@ -290,7 +457,12 @@ export default function VoiceScreen() {
             };
             rec.onerror = () => { speechRecRef.current = null; setIsRecording(false); };
             rec.onend = () => { speechRecRef.current = null; setIsRecording(false); };
-            rec.start();
+            // Kısa gecikme: mikrofon ve ses motoru hazır olsun, ilk kelime kesilmesin
+            setTimeout(() => {
+              if (speechRecRef.current === rec && isRecordingRef.current) {
+                try { rec.start(); } catch { /* zaten başlamış veya sonlanmış olabilir */ }
+              }
+            }, 450);
           } catch (err) {
             speechRecRef.current = null;
             setText(t('noSpeechWeb', 'Speech recognition error. Type your command.'));
@@ -354,9 +526,11 @@ export default function VoiceScreen() {
 
   const isProcessing = parseMutation.isPending;
   const highlightWords = getHighlightWords(text, parsed);
-  const hasParsedAction =
-    parsed &&
-    (parsed.action === 'create_event' || parsed.action === 'create_habit' || parsed.action === 'create_bill');
+  const CREATABLE_ACTIONS = [
+    'create_event', 'create_habit', 'create_bill', 'create_task', 'create_work_block',
+    'create_appointment', 'create_reminder', 'create_subscription', 'create_goal', 'create_travel', 'create_journal',
+  ] as const;
+  const hasParsedAction = parsed && CREATABLE_ACTIONS.includes(parsed.action as (typeof CREATABLE_ACTIONS)[number]);
   const retroPrimary = retroColors.teal;
 
   const btnBase = {
@@ -492,21 +666,78 @@ export default function VoiceScreen() {
               )}
               {parsed && parsed.action === 'create_bill' && (
                 <>
-                  <ParsedCard theme={theme} label="VENDOR" value={(parsed.data.vendor as string) ?? 'Gider'} />
+                  <ParsedCard theme={theme} label="FİRMA" value={(parsed.data.vendor as string) ?? 'Gider'} />
                   <ParsedCard
                     theme={theme}
-                    label="AMOUNT"
-                    value={
-                      parsed.data.amount != null
-                        ? `${Number(parsed.data.amount).toLocaleString('tr-TR')} ₺`
-                        : '—'
-                    }
-                  />
-                  <ParsedCard
-                    theme={theme}
-                    label="DUE DATE"
+                    label="VADE"
                     value={parsed.data.dueDate ? dayjs(parsed.data.dueDate as string).format('DD MMM YYYY') : '—'}
                   />
+                  <View style={{ width: '100%', marginTop: theme.spacing.sm }}>
+                    <AppText variant="small" color="muted" style={{ marginBottom: theme.spacing.xs }}>Tutar (₺)</AppText>
+                    <TextInput
+                      value={billAmount}
+                      onChangeText={setBillAmount}
+                      placeholder="Örn: 5000 veya 150.50"
+                      placeholderTextColor={theme.colors.textMuted}
+                      keyboardType="decimal-pad"
+                      style={{
+                        ...theme.typography.body,
+                        borderWidth: 1,
+                        borderColor: theme.colors.border,
+                        borderRadius: theme.radius.md,
+                        padding: theme.spacing.md,
+                        color: theme.colors.text,
+                        backgroundColor: theme.colors.surface,
+                      }}
+                    />
+                  </View>
+                </>
+              )}
+              {parsed && parsed.action === 'create_subscription' && (
+                <>
+                  <ParsedCard theme={theme} label="ABONELİK" value={(parsed.data.vendor as string) ?? (parsed.data.title as string) ?? '—'} />
+                  <ParsedCard
+                    theme={theme}
+                    label="SONRAKİ ÖDEME"
+                    value={parsed.data.nextBillDate ? dayjs(parsed.data.nextBillDate as string).format('DD MMM YYYY') : '—'}
+                  />
+                  <View style={{ width: '100%', marginTop: theme.spacing.sm }}>
+                    <AppText variant="small" color="muted" style={{ marginBottom: theme.spacing.xs }}>Aylık tutar (₺)</AppText>
+                    <TextInput
+                      value={subscriptionAmount}
+                      onChangeText={setSubscriptionAmount}
+                      placeholder="Örn: 34.99"
+                      placeholderTextColor={theme.colors.textMuted}
+                      keyboardType="decimal-pad"
+                      style={{
+                        ...theme.typography.body,
+                        borderWidth: 1,
+                        borderColor: theme.colors.border,
+                        borderRadius: theme.radius.md,
+                        padding: theme.spacing.md,
+                        color: theme.colors.text,
+                        backgroundColor: theme.colors.surface,
+                      }}
+                    />
+                  </View>
+                </>
+              )}
+              {parsed && parsed.action === 'create_reminder' && (
+                <>
+                  <ParsedCard theme={theme} label="HATIRLATICI" value={(parsed.data.title as string) ?? '—'} />
+                  <ParsedCard
+                    theme={theme}
+                    label="TARİH"
+                    value={parsed.data.remindAt ? dayjs(parsed.data.remindAt as string).format('DD MMM HH:mm') : '—'}
+                  />
+                </>
+              )}
+              {parsed && (parsed.action === 'create_task' || parsed.action === 'create_appointment' || parsed.action === 'create_work_block' || parsed.action === 'create_goal' || parsed.action === 'create_travel' || parsed.action === 'create_journal') && (
+                <>
+                  <ParsedCard theme={theme} label="BAŞLIK" value={(parsed.data.title as string) ?? '—'} />
+                  {parsed.data.dueDate && <ParsedCard theme={theme} label="TARİH" value={dayjs(parsed.data.dueDate as string).format('DD MMM YYYY')} />}
+                  {parsed.data.startDate && <ParsedCard theme={theme} label="TARİH" value={dayjs(parsed.data.startDate as string).format('DD MMM YYYY')} />}
+                  {parsed.data.targetDate && <ParsedCard theme={theme} label="HEDEF" value={dayjs(parsed.data.targetDate as string).format('DD MMM YYYY')} />}
                 </>
               )}
             </View>

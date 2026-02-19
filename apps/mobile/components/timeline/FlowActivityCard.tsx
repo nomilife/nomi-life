@@ -65,6 +65,8 @@ export function FlowActivityCard({
       router.push({ pathname: '/(tabs)/event/[id]', params: { id: item.id } } as never);
     } else if (item.kind === 'bill') {
       router.push({ pathname: '/(tabs)/bill/[id]', params: { id: item.id } } as never);
+    } else if (['work_block', 'task', 'appointment', 'reminder', 'subscription', 'goal', 'travel', 'journal'].includes(item.kind)) {
+      router.push({ pathname: '/(tabs)/item/[id]', params: { id: item.id, kind: item.kind } } as never);
     }
   };
 
@@ -98,19 +100,35 @@ export function FlowActivityCard({
     }
   }, [isExpanded]);
 
+  const kindTag = (): string | undefined => {
+    if (isHabit) return 'HABIT';
+    const labels: Record<string, string> = {
+      work_block: 'WORK',
+      task: 'TASK',
+      appointment: 'APPOINTMENT',
+      reminder: 'REMINDER',
+      subscription: 'SUB',
+      goal: 'GOAL',
+      travel: 'TRAVEL',
+      journal: 'JOURNAL',
+    };
+    return labels[item.kind] ?? (isNow || isSelected ? 'EVENT' : undefined);
+  };
+  const subtext = (item.location as string) ?? (item as Record<string, unknown>).project ?? (item as Record<string, unknown>).withWhom ?? (item as Record<string, unknown>).vendor ?? null;
+
   return (
     <View>
       <Pressable onPress={onPress}>
         <EventCard
           id={isHabit ? habitId : item.id}
           title={(item.title as string) ?? ''}
-          startAt={item.startAt as string | null}
+          startAt={(item.startAt ?? (item as Record<string, unknown>).remindAt) as string | null}
           endAt={item.endAt as string | null}
-          location={item.location as string | null}
+          location={subtext}
           status={isDone || isSkipped ? 'completed' : (item.status as string) ?? 'scheduled'}
           summary={item.summary as string | null}
-          tag={isHabit ? 'HABIT' : (isNow || isSelected ? ((item.metadata?.tag as string) ?? 'DEEP WORK') : undefined)}
-          kind={isHabit ? 'habit_block' : 'event'}
+          tag={kindTag()}
+          kind={(isHabit ? 'habit_block' : item.kind) as 'event' | 'habit_block' | 'work_block' | 'task' | 'appointment' | 'reminder' | 'subscription' | 'goal' | 'travel' | 'journal'}
           participantCount={(item.metadata?.participantCount as number) ?? 0}
           participants={(item.metadata?.participants as Array<{ email?: string; displayName?: string }>) ?? undefined}
           compact

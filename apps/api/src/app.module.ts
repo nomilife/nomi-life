@@ -13,6 +13,14 @@ import { AiModule } from './ai/ai.module';
 import { SettingsModule } from './settings/settings.module';
 import { HealthModule } from './health/health.module';
 import { ShortcutsModule } from './shortcuts/shortcuts.module';
+import { WorkBlocksModule } from './work-blocks/work-blocks.module';
+import { TasksModule } from './tasks/tasks.module';
+import { AppointmentsModule } from './appointments/appointments.module';
+import { RemindersModule } from './reminders/reminders.module';
+import { SubscriptionsModule } from './subscriptions/subscriptions.module';
+import { GoalsModule } from './goals/goals.module';
+import { TravelModule } from './travel/travel.module';
+import { JournalsModule } from './journals/journals.module';
 
 @Module({
   imports: [
@@ -34,6 +42,14 @@ import { ShortcutsModule } from './shortcuts/shortcuts.module';
     SettingsModule,
     HealthModule,
     ShortcutsModule,
+    WorkBlocksModule,
+    TasksModule,
+    AppointmentsModule,
+    RemindersModule,
+    SubscriptionsModule,
+    GoalsModule,
+    TravelModule,
+    JournalsModule,
   ],
   providers: [
     {

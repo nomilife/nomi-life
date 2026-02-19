@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { View, TextInput, Pressable, Text, ScrollView, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/theme';
 import { nomiAppColors } from '@/theme/tokens';
 import { AppText, AppButton } from '@/components/ui';
 import { ScreenHeader } from '@/components/ScreenHeader';
+import { api } from '@/lib/api';
 
 const TASK_TYPES = [
   'Deep Work',
@@ -26,6 +28,7 @@ const ENERGY_LEVELS = ['Low Energy', 'Deep Focus'] as const;
 export default function TaskCreateScreen() {
   const theme = useTheme();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [title, setTitle] = useState('');
   const [taskType, setTaskType] = useState<(typeof TASK_TYPES)[number] | null>(null);
   const [dueDate, setDueDate] = useState('');
@@ -54,13 +57,31 @@ export default function TaskCreateScreen() {
     setSubtasks((prev) => prev.filter((_, idx) => idx !== i));
   };
 
+  const createMutation = useMutation({
+    mutationFn: (data: Record<string, unknown>) =>
+      api('/tasks', { method: 'POST', body: JSON.stringify(data) }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['timeline'] });
+      router.back();
+    },
+    onError: (e) => {
+      Alert.alert('Hata', (e as Error).message);
+    },
+  });
+
   const handleSave = () => {
     if (!title.trim()) {
       Alert.alert('Eksik', 'Görev başlığı gerekli.');
       return;
     }
-    // TODO: API'ye gönder (task endpoint henüz yok)
-    Alert.alert('Kaydedildi', 'Görev formu hazır. API entegrasyonu yakında.');
+    const priorityMap: Record<string, string> = { Low: 'low', Medium: 'normal', High: 'high' };
+    createMutation.mutate({
+      title: title.trim(),
+      dueDate: dueDate.trim() || null,
+      dueTime: dueTime.trim() || null,
+      priority: (priority && priorityMap[priority]) || 'normal',
+      lifeArea: lifeArea ?? null,
+    });
   };
 
   const cardStyle = {
@@ -104,7 +125,7 @@ export default function TaskCreateScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <ScreenHeader showBack title="New Task" rightElement={
-        <Pressable onPress={handleSave}>
+        <Pressable onPress={handleSave} disabled={createMutation.isPending}>
           <AppText variant="body" style={{ color: colors.primary, fontWeight: '600' }}>Save</AppText>
         </Pressable>
       } />

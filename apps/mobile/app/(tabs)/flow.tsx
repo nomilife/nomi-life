@@ -20,8 +20,6 @@ import { ScreenHeader } from '@/components/ScreenHeader';
 import { SwipeableTabContent } from '@/components/SwipeableTabContent';
 import { nomiAppColors } from '@/theme/tokens';
 
-const todayStr = dayjs().format('YYYY-MM-DD');
-
 type TimelineItem = Record<string, unknown> & {
   id: string;
   kind: string;
@@ -45,27 +43,45 @@ interface TimelineData {
   highlights?: { focusState?: number; netLiquid?: number; bioSync?: string };
 }
 
+const TIME_BASED_KINDS = ['event', 'habit_block', 'work_block', 'appointment', 'reminder', 'travel'] as const;
+const ALL_DAY_KINDS = ['task', 'goal', 'journal'] as const;
+const DUE_KINDS = ['bill', 'subscription'] as const;
+
+function getSortTime(item: TimelineItem): string {
+  const remindAt = (item as Record<string, unknown>).remindAt as string | undefined;
+  const startAt = item.startAt as string | undefined;
+  const dueDate = (item as Record<string, unknown>).dueDate as string | undefined;
+  const nextBillDate = (item as Record<string, unknown>).nextBillDate as string | undefined;
+  if (remindAt) return dayjs(remindAt).format('HH:mm');
+  if (startAt) return dayjs(startAt).format('HH:mm');
+  if (dueDate) return dayjs(dueDate).format('HH:mm');
+  if (nextBillDate) return dayjs(nextBillDate).format('HH:mm');
+  return '09:00';
+}
+
 function sortAndMergeItems(items: TimelineItem[]): Array<{ item: TimelineItem; time: string }> {
-  const events = items
-    .filter((i) => i.kind === 'event' || i.kind === 'habit_block')
+  const timeBased = items
+    .filter((i) => TIME_BASED_KINDS.includes(i.kind as (typeof TIME_BASED_KINDS)[number]))
     .sort((a, b) => {
-      const aT = (a.startAt as string) ?? '';
-      const bT = (b.startAt as string) ?? '';
+      const aT = (a.startAt as string) ?? (a as Record<string, unknown>).remindAt ?? '';
+      const bT = (b.startAt as string) ?? (b as Record<string, unknown>).remindAt ?? '';
       return aT.localeCompare(bT);
     });
-  const bills = items.filter((i) => i.kind === 'bill');
+  const allDay = items.filter((i) => ALL_DAY_KINDS.includes(i.kind as (typeof ALL_DAY_KINDS)[number]));
+  const dueItems = items.filter((i) => DUE_KINDS.includes(i.kind as (typeof DUE_KINDS)[number]));
   const rows: Array<{ item: TimelineItem; time: string }> = [];
-  for (const e of events) {
-    rows.push({ item: e, time: e.startAt ? dayjs(e.startAt as string).format('HH:mm') : '08:00' });
+  for (const e of timeBased) {
+    rows.push({ item: e, time: getSortTime(e) });
   }
-  for (const b of bills) {
-    rows.push({ item: b, time: '12:30' });
+  for (const a of allDay) {
+    rows.push({ item: a, time: getSortTime(a) });
+  }
+  for (const d of dueItems) {
+    rows.push({ item: d, time: getSortTime(d) });
   }
   rows.sort((a, b) => a.time.localeCompare(b.time));
   return rows;
 }
-
-type Habit = { id: string; title: string; todayStatus?: string | null };
 
 export default function FlowScreen() {
   const theme = useTheme();
@@ -73,45 +89,51 @@ export default function FlowScreen() {
   const queryClient = useQueryClient();
   const [menuVisible, setMenuVisible] = useState(false);
   const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
+  const [selectedDate, setSelectedDate] = useState(() => dayjs().format('YYYY-MM-DD'));
+
+  const dateStr = selectedDate;
 
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['timeline', todayStr],
-    queryFn: ({ signal }) => api<TimelineData>(`/timeline?date=${todayStr}`, { signal }),
+    queryKey: ['timeline', dateStr],
+    queryFn: ({ signal }) => api<TimelineData>(`/timeline?date=${dateStr}`, { signal }),
     retry: 2,
     retryDelay: 1000,
     staleTime: 60_000,
-  });
-
-  const { data: routineData } = useQuery({
-    queryKey: ['routine', todayStr],
-    queryFn: () => api<{ flowState: number; activeHabits: Habit[] }>(`/habits/routine?date=${todayStr}`),
-    enabled: true,
   });
 
   const entryMutation = useMutation({
     mutationFn: ({ habitId, status }: { habitId: string; status: 'done' | 'skipped' }) =>
       api(`/habits/${habitId}/entry`, {
         method: 'POST',
-        body: JSON.stringify({ date: todayStr, status }),
+        body: JSON.stringify({ date: dateStr, status }),
       }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['routine', todayStr] });
-      queryClient.invalidateQueries({ queryKey: ['timeline', todayStr] });
+      queryClient.invalidateQueries({ queryKey: ['timeline', dateStr] });
     },
   });
 
   const habitsByStatus = useMemo(() => {
     const m: Record<string, string | null> = {};
-    for (const h of routineData?.activeHabits ?? []) {
-      m[h.id] = h.todayStatus ?? null;
+    for (const item of data?.items ?? []) {
+      if (item.kind === 'habit_block') {
+        const hid = (item.metadata?.habitId as string) ?? item.id;
+        const status = (item.metadata?.todayStatus as string) ?? null;
+        m[hid] = status ?? null;
+      }
     }
     return m;
-  }, [routineData?.activeHabits]);
+  }, [data?.items]);
 
   const items = data?.items ?? [];
   const rows = useMemo(() => sortAndMergeItems(items), [items]);
   const hasAnyItems = items.length > 0;
-  const now = dayjs().format('HH:mm');
+  const today = dayjs().format('YYYY-MM-DD');
+  const now =
+    dateStr === today
+      ? dayjs().format('HH:mm')
+      : dateStr < today
+        ? '23:59'
+        : '00:00';
 
   if (isLoading && !data) return <LoadingState />;
   if (error && !data) {
@@ -139,12 +161,12 @@ export default function FlowScreen() {
   return (
     <FlowThemeProvider theme={flowTheme}>
       <View style={{ flex: 1, backgroundColor: nomiAppColors.background }}>
-        <HomeMenuModal visible={menuVisible} onClose={() => setMenuVisible(false)} currentDate={todayStr} />
+        <HomeMenuModal visible={menuVisible} onClose={() => setMenuVisible(false)} currentDate={dateStr} />
 
         <SwipeableTabContent currentTab="flow">
           <ScreenHeader
             onMenuPress={() => setMenuVisible(true)}
-            title="Today's Flow"
+            title={dateStr === today ? "Today's Flow" : dayjs(dateStr).format('ddd, MMM D')}
             subtitle="LIFEOS 2.4"
             rightElement={
               <View
@@ -165,6 +187,23 @@ export default function FlowScreen() {
             }
           />
 
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: flowTheme.spacing.lg, marginBottom: flowTheme.spacing.sm }}>
+            <Pressable
+              onPress={() => setSelectedDate(dayjs(selectedDate).subtract(1, 'day').format('YYYY-MM-DD'))}
+              style={{ padding: flowTheme.spacing.sm }}
+            >
+              <Ionicons name="chevron-back" size={24} color={nomiAppColors.primary} />
+            </Pressable>
+            <AppText variant="body" style={{ color: nomiAppColors.textPrimary, fontWeight: '600' }}>
+              {dayjs(selectedDate).format('ddd, D MMM')}
+            </AppText>
+            <Pressable
+              onPress={() => setSelectedDate(dayjs(selectedDate).add(1, 'day').format('YYYY-MM-DD'))}
+              style={{ padding: flowTheme.spacing.sm }}
+            >
+              <Ionicons name="chevron-forward" size={24} color={nomiAppColors.primary} />
+            </Pressable>
+          </View>
           <View style={{ paddingHorizontal: flowTheme.spacing.lg, paddingBottom: flowTheme.spacing.md }}>
             <FlowHighlightsBar
               focusState={data?.highlights?.focusState}
