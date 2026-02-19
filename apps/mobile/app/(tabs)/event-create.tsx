@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { View, TextInput, Pressable, Text, Alert, ScrollView } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { ScreenHeader } from '@/components/ScreenHeader';
+import { nomiAppColors } from '@/theme/tokens';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/theme';
 import { api } from '@/lib/api';
 import dayjs from 'dayjs';
@@ -14,6 +16,8 @@ function isValidEmail(s: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
 }
 
+const EVENT_TYPES = ['Workout', 'Meeting', 'Social', 'Appointment', 'Travel', 'Personal Time', 'Reminder'] as const;
+
 export default function EventCreateScreen() {
   const { t } = useTranslation('flow');
   const theme = useTheme();
@@ -21,7 +25,11 @@ export default function EventCreateScreen() {
   const queryClient = useQueryClient();
   const params = useLocalSearchParams<{ title?: string; startAt?: string; endAt?: string; location?: string }>();
   const [title, setTitle] = useState(params.title ?? '');
+  const [eventType, setEventType] = useState<(typeof EVENT_TYPES)[number] | null>(null);
   const [location, setLocation] = useState(params.location ?? '');
+  const [primaryAction, setPrimaryAction] = useState('');
+  const [notes, setNotes] = useState('');
+  const [advancedOpen, setAdvancedOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
   const [participantsEmails, setParticipantsEmails] = useState<string[]>([]);
   const roundTo15 = (d: dayjs.Dayjs) => {
@@ -110,14 +118,33 @@ export default function EventCreateScreen() {
     backgroundColor: theme.colors.surface,
   };
 
-  return (
-    <ScrollView
-      style={{ flex: 1, backgroundColor: theme.colors.background }}
-      contentContainerStyle={{ padding: theme.spacing.lg, paddingBottom: theme.spacing.xxxl }}
+  const colors = { ...theme.colors, ...nomiAppColors };
+  const chip = (label: string, selected: boolean, onPress: () => void) => (
+    <Pressable
+      key={label}
+      onPress={onPress}
+      style={{
+        paddingVertical: theme.spacing.sm,
+        paddingHorizontal: theme.spacing.md,
+        borderRadius: theme.radius.full,
+        backgroundColor: selected ? colors.primary : colors.surface2,
+        borderWidth: 1,
+        borderColor: selected ? colors.primary : colors.border,
+      }}
     >
-      <View style={{ marginBottom: theme.spacing.xl }}>
-        <Text style={{ ...theme.typography.h2, color: theme.colors.text }}>{t('eventFormTitle', 'Yeni Etkinlik')}</Text>
-        <Text style={{ ...theme.typography.small, color: theme.colors.textMuted, marginTop: theme.spacing.xs }}>
+      <Text style={{ ...theme.typography.small, color: selected ? '#fff' : colors.textPrimary, fontWeight: '500' }}>{label}</Text>
+    </Pressable>
+  );
+
+  return (
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
+      <ScreenHeader showBack title={t('eventFormTitle', 'New Event')} />
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ padding: theme.spacing.lg, paddingBottom: theme.spacing.xxxl }}
+      >
+      <View style={{ marginBottom: theme.spacing.lg }}>
+        <Text style={{ ...theme.typography.small, color: colors.textMuted, marginTop: theme.spacing.xs }}>
           {t('eventFormSubtitle', 'Etkinlik bilgilerini gir')}
         </Text>
       </View>
@@ -134,13 +161,18 @@ export default function EventCreateScreen() {
       >
         <TextInput
           style={{ ...inputStyle, marginTop: 0 }}
-          placeholder={t('eventTitlePlaceholder', 'Başlık')}
+          placeholder="Event name"
           value={title}
           onChangeText={setTitle}
           placeholderTextColor={theme.colors.textMuted}
         />
+        <AppText variant="small" color="muted" style={{ marginTop: theme.spacing.lg, marginBottom: theme.spacing.sm }}>Event Type</AppText>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm }}>
+          {EVENT_TYPES.map((t) => chip(t, eventType === t, () => setEventType(eventType === t ? null : t)))}
+        </View>
+        <AppText variant="small" color="muted" style={{ marginTop: theme.spacing.lg, marginBottom: theme.spacing.sm }}>Location</AppText>
         <TextInput
-          style={{ ...inputStyle, marginTop: theme.spacing.md }}
+          style={{ ...inputStyle, marginTop: 0 }}
           placeholder={t('eventLocationPlaceholder', 'Konum')}
           value={location}
           onChangeText={setLocation}
@@ -150,6 +182,58 @@ export default function EventCreateScreen() {
           <DateTimeRecurrencePicker value={datetime} onChange={setDatetime} />
         </View>
       </View>
+
+      <View style={{ backgroundColor: theme.colors.surface, borderRadius: theme.radius.xl, padding: theme.spacing.lg, marginBottom: theme.spacing.lg, borderWidth: 1, borderColor: theme.colors.border }}>
+        <AppText variant="small" color="muted" style={{ marginBottom: theme.spacing.sm }}>Primary Action</AppText>
+        <Pressable
+          onPress={() => {}}
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            padding: theme.spacing.md,
+            backgroundColor: primaryAction ? theme.colors.surface2 : 'transparent',
+            borderRadius: theme.radius.md,
+            borderWidth: 1,
+            borderColor: theme.colors.border,
+            borderStyle: 'dashed',
+          }}
+        >
+          {primaryAction ? (
+            <>
+              <Ionicons name="link" size={20} color={theme.colors.primary} style={{ marginRight: theme.spacing.sm }} />
+              <AppText variant="body" style={{ flex: 1 }}>{primaryAction}</AppText>
+              <AppText variant="small" style={{ color: theme.colors.primary }}>Change</AppText>
+            </>
+          ) : (
+            <>
+              <Ionicons name="add" size={20} color={theme.colors.textMuted} style={{ marginRight: theme.spacing.sm }} />
+              <AppText variant="body" color="muted">Add Action</AppText>
+            </>
+          )}
+        </Pressable>
+      </View>
+
+      <View style={{ backgroundColor: theme.colors.surface, borderRadius: theme.radius.xl, padding: theme.spacing.lg, marginBottom: theme.spacing.lg, borderWidth: 1, borderColor: theme.colors.border }}>
+        <AppText variant="small" color="muted" style={{ marginBottom: theme.spacing.sm }}>Notes</AppText>
+        <TextInput
+          style={{ ...inputStyle, minHeight: 60, textAlignVertical: 'top' }}
+          placeholder="Notes..."
+          value={notes}
+          onChangeText={setNotes}
+          placeholderTextColor={theme.colors.textMuted}
+          multiline
+        />
+      </View>
+
+      <Pressable onPress={() => setAdvancedOpen((o) => !o)} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: theme.spacing.md }}>
+        <Ionicons name={advancedOpen ? 'chevron-down' : 'chevron-forward'} size={18} color={theme.colors.textMuted} />
+        <AppText variant="small" color="muted" style={{ marginLeft: theme.spacing.sm }}>Advanced (Participants, Video link, Attachments, Travel buffer)</AppText>
+      </Pressable>
+      {advancedOpen && (
+        <View style={{ backgroundColor: theme.colors.surface2, borderRadius: theme.radius.lg, padding: theme.spacing.lg, marginBottom: theme.spacing.lg }}>
+          <AppText variant="caption" color="muted">Participants, video meeting link, attachments, travel time buffer</AppText>
+        </View>
+      )}
 
       <AppText variant="h3" style={{ marginTop: theme.spacing.xl, marginBottom: theme.spacing.sm }}>
         {t('event.inviteSection', 'Davet et')}
@@ -231,6 +315,7 @@ export default function EventCreateScreen() {
         <Text style={{ color: '#fff', ...theme.typography.body, fontWeight: '600' }}>{t('eventCreateButton', 'Oluştur')}</Text>
       </Pressable>
       </View>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }

@@ -72,6 +72,7 @@ export default function TabsLayout() {
       <Tabs.Screen name="network" options={{ href: null }} />
       <Tabs.Screen name="vault" options={{ href: null }} />
       <Tabs.Screen name="event-create" options={{ href: null, title: t('newEvent') }} />
+      <Tabs.Screen name="task-create" options={{ href: null, title: 'New Task' }} />
       <Tabs.Screen name="bill-create" options={{ href: null, title: t('newBill') }} />
       <Tabs.Screen name="event/[id]" options={{ href: null }} />
       <Tabs.Screen name="event/[id]/chat" options={{ href: null }} />

@@ -1,12 +1,10 @@
 import { useState, useMemo } from 'react';
 import { View, ScrollView, Pressable } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, FlowThemeProvider } from '@/theme';
-import { flowDefaultColors } from '@/theme/tokens';
 import { api } from '@/lib/api';
 import { FlowActivityCard } from '@/components/timeline/FlowActivityCard';
 import { TimelineRail } from '@/components/timeline/TimelineRail';
@@ -18,6 +16,9 @@ import {
   LoadingState,
 } from '@/components/ui';
 import { HomeMenuModal } from '@/components/HomeMenuModal';
+import { ScreenHeader } from '@/components/ScreenHeader';
+import { SwipeableTabContent } from '@/components/SwipeableTabContent';
+import { nomiAppColors } from '@/theme/tokens';
 
 const todayStr = dayjs().format('YYYY-MM-DD');
 
@@ -111,8 +112,6 @@ export default function FlowScreen() {
   const rows = useMemo(() => sortAndMergeItems(items), [items]);
   const hasAnyItems = items.length > 0;
   const now = dayjs().format('HH:mm');
-  const accentViolet = '#7C3AED';
-  const accentRose = '#FDA4AF';
 
   if (isLoading && !data) return <LoadingState />;
   if (error && !data) {
@@ -120,7 +119,7 @@ export default function FlowScreen() {
     const isNetwork =
       errMsg.includes('fetch') || errMsg.includes('Network') || errMsg.includes('ulaşılamıyor');
     return (
-      <View style={{ flex: 1, backgroundColor: flowDefaultColors.background }}>
+      <View style={{ flex: 1, backgroundColor: nomiAppColors.background }}>
         <ErrorState
           title={isNetwork ? 'Bağlantı hatası' : 'Hata'}
           message={
@@ -135,38 +134,19 @@ export default function FlowScreen() {
     );
   }
 
-  const flowTheme = { ...theme, colors: flowDefaultColors };
+  const flowTheme = { ...theme, colors: nomiAppColors };
 
   return (
     <FlowThemeProvider theme={flowTheme}>
-      <View style={{ flex: 1 }}>
-        <LinearGradient
-          colors={['#ffffff', '#f3f0ff', '#fff5f7']}
-          locations={[0, 0.5, 1]}
-          style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }}
-        />
-        <View style={{ position: 'absolute', top: -50, right: -80, width: 300, height: 300, borderRadius: 150, backgroundColor: 'rgba(124, 58, 237, 0.1)' }} />
-        <View style={{ position: 'absolute', bottom: '15%', left: -100, width: 280, height: 280, borderRadius: 140, backgroundColor: 'rgba(253, 164, 175, 0.2)' }} />
-
+      <View style={{ flex: 1, backgroundColor: nomiAppColors.background }}>
         <HomeMenuModal visible={menuVisible} onClose={() => setMenuVisible(false)} currentDate={todayStr} />
 
-        <View style={{ flex: 1 }}>
-          <View style={{ paddingHorizontal: flowTheme.spacing.lg, paddingTop: 48, paddingBottom: flowTheme.spacing.md }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: flowTheme.spacing.xs }}>
-              <Pressable onPress={() => setMenuVisible(true)} style={{ padding: flowTheme.spacing.xs }}>
-                <Ionicons name="menu" size={24} color={flowTheme.colors.textPrimary} />
-              </Pressable>
-              <View style={{ flex: 1, alignItems: 'center' }}>
-                <AppText
-                  variant="small"
-                  style={{ color: accentViolet, letterSpacing: 3, fontWeight: '700', opacity: 0.8, marginBottom: 2 }}
-                >
-                  LIFEOS 2.4
-                </AppText>
-                <AppText variant="title" style={{ color: flowTheme.colors.textPrimary, fontWeight: '700' }}>
-                  Today's Flow
-                </AppText>
-              </View>
+        <SwipeableTabContent currentTab="flow">
+          <ScreenHeader
+            onMenuPress={() => setMenuVisible(true)}
+            title="Today's Flow"
+            subtitle="LIFEOS 2.4"
+            rightElement={
               <View
                 style={{
                   width: 44,
@@ -174,16 +154,18 @@ export default function FlowScreen() {
                   borderRadius: 16,
                   overflow: 'hidden',
                   borderWidth: 2,
-                  borderColor: 'rgba(124, 58, 237, 0.4)',
-                  backgroundColor: flowTheme.colors.surface2,
+                  borderColor: nomiAppColors.primary + '60',
+                  backgroundColor: nomiAppColors.surface2,
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}
               >
-                <Ionicons name="person" size={24} color={accentViolet} />
+                <Ionicons name="person" size={24} color={nomiAppColors.primary} />
               </View>
-            </View>
+            }
+          />
 
+          <View style={{ paddingHorizontal: flowTheme.spacing.lg, paddingBottom: flowTheme.spacing.md }}>
             <FlowHighlightsBar
               focusState={data?.highlights?.focusState}
               netLiquid={data?.highlights?.netLiquid}
@@ -262,35 +244,31 @@ export default function FlowScreen() {
                 elevation: 4,
               }}
             >
-              <AppText variant="small" style={{ color: accentViolet, fontWeight: '700' }}>
+              <AppText variant="small" style={{ color: nomiAppColors.primary, fontWeight: '700' }}>
                 Next sync in 15m. Need a briefing?
               </AppText>
             </Pressable>
             <Pressable onPress={() => router.push('/(modal)/voice' as never)} style={{ alignItems: 'center', justifyContent: 'center' }}>
-              <View style={{ position: 'absolute', width: 96, height: 96, borderRadius: 48, backgroundColor: 'rgba(124, 58, 237, 0.15)' }} />
-              <View style={{ position: 'absolute', width: 136, height: 136, borderRadius: 68, backgroundColor: 'rgba(124, 58, 237, 0.06)' }} />
-              <LinearGradient
-                colors={['#7C3AED', '#A78BFA', '#FDA4AF', '#A78BFA', '#7C3AED']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
+              <View
                 style={{
                   width: 64,
                   height: 64,
                   borderRadius: 32,
+                  backgroundColor: nomiAppColors.primary,
                   alignItems: 'center',
                   justifyContent: 'center',
-                  shadowColor: '#7C3AED',
-                  shadowOffset: { width: 0, height: 10 },
-                  shadowOpacity: 0.4,
-                  shadowRadius: 25,
-                  elevation: 8,
+                  shadowColor: nomiAppColors.primary,
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: 0.3,
+                  shadowRadius: 8,
+                  elevation: 6,
                 }}
               >
                 <Ionicons name="mic" size={28} color="#fff" />
-              </LinearGradient>
+              </View>
             </Pressable>
           </View>
-        </View>
+        </SwipeableTabContent>
       </View>
     </FlowThemeProvider>
   );

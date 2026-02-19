@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { View, ScrollView, Pressable } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
@@ -5,6 +6,10 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '@/lib/api';
 import { useTheme } from '@/theme';
+import { HomeMenuModal } from '@/components/HomeMenuModal';
+import { ScreenHeader } from '@/components/ScreenHeader';
+import { SwipeableTabContent } from '@/components/SwipeableTabContent';
+import { nomiAppColors } from '@/theme/tokens';
 import {
   AppText,
   SectionHeader,
@@ -62,6 +67,7 @@ export default function InsightsScreen() {
   const { t } = useTranslation('insights');
   const theme = useTheme();
   const router = useRouter();
+  const [menuVisible, setMenuVisible] = useState(false);
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['timeline', 'insights'],
@@ -74,7 +80,7 @@ export default function InsightsScreen() {
   if (isLoading) return <LoadingState />;
   if (error) {
     return (
-      <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
+      <View style={{ flex: 1, backgroundColor: nomiAppColors.background }}>
         <ErrorState
           message={(error as Error).message}
           onRetry={() => refetch()}
@@ -97,17 +103,15 @@ export default function InsightsScreen() {
       : 'OCT 12 – OCT 18';
 
   return (
-    <ScrollView
-      style={{ flex: 1, backgroundColor: theme.colors.background }}
-      contentContainerStyle={{ padding: theme.spacing.lg, paddingBottom: 120 }}
-    >
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: theme.spacing.sm }}>
-        <Pressable onPress={() => router.back()} hitSlop={12}>
-          <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
-        </Pressable>
-      </View>
-
-      <AppText variant="display" style={{ color: theme.colors.textPrimary, marginBottom: theme.spacing.xs }}>
+    <SwipeableTabContent currentTab="insights">
+      <View style={{ flex: 1, backgroundColor: nomiAppColors.background }}>
+        <HomeMenuModal visible={menuVisible} onClose={() => setMenuVisible(false)} />
+        <ScreenHeader onMenuPress={() => setMenuVisible(true)} title={t('title', 'Insights')} />
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{ padding: theme.spacing.lg, paddingBottom: 120 }}
+        >
+      <AppText variant="display" style={{ color: nomiAppColors.textPrimary, marginBottom: theme.spacing.xs }}>
         {t('title', 'Insights')}
       </AppText>
       <AppText variant="body" color="muted" style={{ marginBottom: theme.spacing.xl }}>
@@ -297,7 +301,7 @@ export default function InsightsScreen() {
       {/* AI Suggestion */}
       <View
         style={{
-          backgroundColor: '#6B21A8',
+          backgroundColor: nomiAppColors.primary,
           borderRadius: theme.radius.lg,
           padding: theme.spacing.lg,
           borderWidth: 0,
@@ -324,6 +328,8 @@ export default function InsightsScreen() {
           <AppText variant="body" style={{ color: '#fff', fontWeight: '600' }}>Set Reminder</AppText>
         </Pressable>
       </View>
-    </ScrollView>
+        </ScrollView>
+      </View>
+    </SwipeableTabContent>
   );
 }

@@ -3,7 +3,7 @@ import { View, Pressable, Platform, Text } from 'react-native';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeStore } from '@/store/theme';
-import { flowDefaultColors, darkColors } from '@/theme/tokens';
+import { nomiAppColors, darkColors } from '@/theme/tokens';
 import { AddActionModal } from './AddActionModal';
 
 // Flow, Nexus, [gap], Vault, Core — orijinal Stitch tasarım
@@ -37,9 +37,9 @@ export function CustomTabBar({ state, descriptors, navigation }: BottomTabBarPro
   const leftTabs = visibleRoutes.slice(0, 2);
   const rightTabs = visibleRoutes.slice(2);
 
-  const activeColor = isDark ? darkColors.tabBarActive : isWarm ? flowDefaultColors.tabBarActive : '#3b82f6';
-  const inactiveColor = isDark ? darkColors.tabBarInactive : isWarm ? flowDefaultColors.tabBarInactive : '#9ca3af';
-  const bgColor = isDark ? darkColors.tabBarBg : isWarm ? flowDefaultColors.tabBarBg : '#1a1f26';
+  const activeColor = isDark ? darkColors.tabBarActive : isWarm ? nomiAppColors.tabBarActive : '#3b82f6';
+  const inactiveColor = isDark ? darkColors.tabBarInactive : isWarm ? nomiAppColors.tabBarInactive : '#9ca3af';
+  const bgColor = isDark ? darkColors.tabBarBg : isWarm ? nomiAppColors.tabBarBg : '#1a1f26';
 
   const renderTab = (route: (typeof state.routes)[0], index: number) => {
     const routeIndex = state.routes.findIndex((r) => r.key === route.key);
@@ -76,7 +76,7 @@ export function CustomTabBar({ state, descriptors, navigation }: BottomTabBarPro
                   paddingHorizontal: 14,
                   paddingVertical: 8,
                   borderRadius: 16,
-                  backgroundColor: isDark ? darkColors.surface2 : flowDefaultColors.surface2,
+                  backgroundColor: isDark ? darkColors.surface2 : nomiAppColors.surface2,
                   alignItems: 'center',
                 }
               : { alignItems: 'center' as const }
@@ -133,7 +133,7 @@ export function CustomTabBar({ state, descriptors, navigation }: BottomTabBarPro
               alignItems: 'center',
               justifyContent: 'center',
               marginTop: -20,
-              shadowColor: '#7C3AED',
+              shadowColor: nomiAppColors.primary,
               shadowOffset: { width: 0, height: 2 },
               shadowOpacity: 0.2,
               shadowRadius: 6,

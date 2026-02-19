@@ -4,8 +4,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/theme';
 
 const ACTIONS = [
-  { key: 'event', icon: 'calendar-outline' as const, label: 'Event', path: '/(tabs)/event-create' as const, color: '#86EFAC' },
-  { key: 'events', icon: 'calendar' as const, label: 'Takvim', path: '/(tabs)/events' as const, color: '#93C5FD' },
+  { key: 'task', icon: 'checkbox-outline' as const, label: 'Task', path: '/(tabs)/task-create' as const, color: '#86EFAC' },
+  { key: 'event', icon: 'calendar-outline' as const, label: 'Event', path: '/(tabs)/event-create' as const, color: '#93C5FD' },
+  { key: 'events', icon: 'calendar' as const, label: 'Takvim', path: '/(tabs)/events' as const, color: '#A78BFA' },
   { key: 'copilot', icon: 'sparkles' as const, label: 'Copilot', path: '/(tabs)/copilot' as const, color: '#A78BFA' },
   { key: 'voice', icon: 'mic-outline' as const, label: 'Voice', path: '/(modal)/voice' as const, color: '#FDE68A' },
   { key: 'bill', icon: 'receipt-outline' as const, label: 'Bill', path: '/(tabs)/bill-create' as const, color: '#DDD6FE' },

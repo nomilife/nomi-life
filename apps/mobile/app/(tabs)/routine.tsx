@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { View, ScrollView, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -16,6 +16,9 @@ import {
   LoadingState,
 } from '@/components/ui';
 import { HabitStreakBadge } from '@/components/HabitStreakBadge';
+import { HomeMenuModal } from '@/components/HomeMenuModal';
+import { ScreenHeader } from '@/components/ScreenHeader';
+import { nomiAppColors } from '@/theme/tokens';
 
 const today = dayjs().format('YYYY-MM-DD');
 
@@ -43,6 +46,7 @@ export default function RoutineScreen() {
   const theme = useTheme();
   const router = useRouter();
   const queryClient = useQueryClient();
+  const [menuVisible, setMenuVisible] = useState(false);
 
   const { data: timelineData, isLoading: timelineLoading, error: timelineError } = useQuery({
     queryKey: ['timeline', today],
@@ -105,10 +109,13 @@ export default function RoutineScreen() {
   }
 
   return (
-    <ScrollView
-      style={{ flex: 1, backgroundColor: theme.colors.background }}
-      contentContainerStyle={{ padding: theme.spacing.lg, paddingBottom: theme.spacing.xxxl }}
-    >
+    <View style={{ flex: 1, backgroundColor: nomiAppColors.background }}>
+      <HomeMenuModal visible={menuVisible} onClose={() => setMenuVisible(false)} />
+      <ScreenHeader onMenuPress={() => setMenuVisible(true)} title={t('title')} />
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ padding: theme.spacing.lg, paddingBottom: theme.spacing.xxxl }}
+      >
       <SectionHeader
         title={t('title')}
         action={
@@ -220,6 +227,7 @@ export default function RoutineScreen() {
           return null;
         })
       )}
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }

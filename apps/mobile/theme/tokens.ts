@@ -191,6 +191,37 @@ export const warmColors = {
   authReset: '#fb7185',
 } as const;
 
+/** NOMI App — tutarlı tema: cream + turuncu accent (mor/rose yok) */
+export const nomiAppColors = {
+  background: '#F5EDE4',
+  surface: '#FFFFFF',
+  surface2: '#FFF8F0',
+  surfaceTranslucent: 'rgba(255, 248, 240, 0.95)',
+  border: '#E8D5C4',
+  textPrimary: '#2D3748',
+  textSecondary: '#4A5568',
+  text: '#2D3748',
+  textMuted: '#718096',
+  muted: '#A0AEC0',
+  accent: '#E07C3C',
+  accent2: '#D97706',
+  accentBright: '#EA580C',
+  primary: '#E07C3C',
+  primaryMuted: '#FBD38D',
+  success: '#38A169',
+  warning: '#D69E2E',
+  danger: '#E53E3E',
+  financeAlert: '#FED7D7',
+  cardBg: '#FFFFFF',
+  buttonPrimary: '#E07C3C',
+  buttonSecondary: '#FFFFFF',
+  tabBarBg: '#FFFFFF',
+  tabBarActive: '#E07C3C',
+  tabBarInactive: '#718096',
+  authPrimary: '#facc15',
+  authReset: '#fb7185',
+} as const;
+
 /** Stitch / LifeOS 2.4 — pearlescent glass design */
 export const flowStitchColors = {
   accentViolet: '#7C3AED',

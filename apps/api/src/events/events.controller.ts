@@ -32,6 +32,11 @@ export class EventsController {
     return this.eventsService.getInvites(userId);
   }
 
+  @Get('coplanners')
+  getCoplanners(@UserId() userId: string) {
+    return this.eventsService.getCoplanners(userId);
+  }
+
   @Get('shared')
   getShared(@UserId() userId: string) {
     return this.eventsService.getShared(userId);

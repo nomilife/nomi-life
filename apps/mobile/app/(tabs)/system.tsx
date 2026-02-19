@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react';
 import { View, ScrollView, Switch, Alert, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
+import { HomeMenuModal } from '@/components/HomeMenuModal';
+import { ScreenHeader } from '@/components/ScreenHeader';
+import { SwipeableTabContent } from '@/components/SwipeableTabContent';
+import { nomiAppColors } from '@/theme/tokens';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTheme } from '@/theme';
@@ -55,6 +59,7 @@ export default function SystemScreen() {
   const [username, setUsername] = useState('');
   const [apiStatus, setApiStatus] = useState<{ ok: boolean; error?: string; hint?: string } | null>(null);
   const [testingConnection, setTestingConnection] = useState(false);
+  const [menuVisible, setMenuVisible] = useState(false);
 
   const { data: settings, isLoading: settingsLoading } = useQuery({
     queryKey: ['settings'],
@@ -141,11 +146,14 @@ export default function SystemScreen() {
   };
 
   return (
-    <ScrollView
-      style={{ flex: 1, backgroundColor: theme.colors.background }}
-      contentContainerStyle={{ padding: theme.spacing.lg, paddingBottom: theme.spacing.xxxl }}
-    >
-      <SectionHeader title={t('title')} />
+    <SwipeableTabContent currentTab="system">
+      <View style={{ flex: 1, backgroundColor: nomiAppColors.background }}>
+        <HomeMenuModal visible={menuVisible} onClose={() => setMenuVisible(false)} />
+        <ScreenHeader onMenuPress={() => setMenuVisible(true)} title={t('pageTitle')} />
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{ padding: theme.spacing.lg, paddingBottom: theme.spacing.xxxl }}
+        >
 
       <AppText variant="h3" style={{ marginBottom: theme.spacing.sm }}>
         Ekran modu
@@ -312,6 +320,8 @@ export default function SystemScreen() {
       <AppButton variant="danger" onPress={handleSignOut} style={{ marginTop: theme.spacing.xl }}>
         {t('signOut', 'Sign out')}
       </AppButton>
-    </ScrollView>
+        </ScrollView>
+      </View>
+    </SwipeableTabContent>
   );
 }

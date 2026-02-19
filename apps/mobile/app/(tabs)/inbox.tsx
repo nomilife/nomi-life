@@ -1,11 +1,15 @@
+import { useState } from 'react';
 import { View, ScrollView, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/theme';
+import { HomeMenuModal } from '@/components/HomeMenuModal';
+import { ScreenHeader } from '@/components/ScreenHeader';
+import { SwipeableTabContent } from '@/components/SwipeableTabContent';
 import { AppText, EmptyState } from '@/components/ui';
 import { InboxCard } from '@/components/nomi';
 import { useInboxStore } from '@/store/inbox';
-import { nomiColors } from '@/theme/tokens';
+import { nomiAppColors } from '@/theme/tokens';
 
 const TABS = [
   { key: 'all' as const, label: 'All Items' },
@@ -16,7 +20,8 @@ const TABS = [
 export default function InboxScreen() {
   const theme = useTheme();
   const router = useRouter();
-  const primary = (theme.colors as { primary?: string }).primary ?? nomiColors.primary;
+  const [menuVisible, setMenuVisible] = useState(false);
+  const primary = nomiAppColors.primary;
 
   const { items, activeTab, setActiveTab, convertToTask, convertToEvent, convertToHabit, convertToBill, keepAsNote } = useInboxStore();
 
@@ -44,10 +49,12 @@ export default function InboxScreen() {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#F5EDE4' }}>
-      <View style={{ paddingTop: 48, paddingHorizontal: theme.spacing.lg, paddingBottom: theme.spacing.md }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-          <AppText variant="title" style={{ color: '#2D3748', fontWeight: '700' }}>Inbox</AppText>
+    <SwipeableTabContent currentTab="inbox">
+      <View style={{ flex: 1, backgroundColor: nomiAppColors.background }}>
+        <HomeMenuModal visible={menuVisible} onClose={() => setMenuVisible(false)} />
+        <ScreenHeader onMenuPress={() => setMenuVisible(true)} title="Inbox" />
+        <View style={{ paddingHorizontal: theme.spacing.lg, paddingBottom: theme.spacing.md }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', marginBottom: 4 }}>
           <Pressable
             onPress={() => router.push('/(modal)/voice' as never)}
             style={{
@@ -111,6 +118,7 @@ export default function InboxScreen() {
           ))
         )}
       </ScrollView>
-    </View>
+      </View>
+    </SwipeableTabContent>
   );
 }

@@ -202,6 +202,115 @@ export class EventsService {
     });
   }
 
+  async getCoplanners(userId: string) {
+    const { data: myParticipants } = await this.supabase
+      .from('event_participants')
+      .select('event_id')
+      .eq('user_id', userId)
+      .eq('rsvp_status', 'accepted');
+
+    if (!myParticipants?.length) return { friends: [], sharedPlans: [] };
+
+    const eventIds = myParticipants.map((p) => p.event_id);
+    const { data: sharedEvents } = await this.supabase
+      .from('events')
+      .select(`
+        timeline_item_id,
+        location,
+        timeline_items!inner (id, title, start_at, end_at, summary, status)
+      `)
+      .in('timeline_item_id', eventIds)
+      .eq('visibility', 'shared');
+
+    if (!sharedEvents?.length) return { friends: [], sharedPlans: [] };
+
+    const allEventIds = sharedEvents.map((e) => e.timeline_item_id);
+    const { data: allParticipants } = await this.supabase
+      .from('event_participants')
+      .select('event_id, user_id, invited_email')
+      .in('event_id', allEventIds);
+
+    const profilesByUserId: Record<string, { email?: string; displayName?: string }> = {};
+    const userIds = [...new Set((allParticipants ?? []).map((p) => p.user_id).filter(Boolean))];
+    if (userIds.length > 0) {
+      const { data: profiles } = await this.supabase
+        .from('profiles')
+        .select('user_id, email, display_name')
+        .in('user_id', userIds);
+      for (const p of profiles ?? []) {
+        const u = p as { user_id: string; email?: string; display_name?: string };
+        profilesByUserId[u.user_id] = {
+          email: u.email,
+          displayName: (u.display_name as string) || u.email?.split('@')[0],
+        };
+      }
+    }
+
+    const friendMap = new Map<
+      string,
+      { email: string; displayName?: string; lastEventAt: string; eventCount: number }
+    >();
+    const plansWithParticipants: Array<{
+      id: string;
+      title: string;
+      startAt: string;
+      endAt: string;
+      location?: string;
+      participants: Array<{ email: string; displayName?: string }>;
+    }> = [];
+
+    for (const ev of sharedEvents) {
+      const evRecord = ev as Record<string, unknown>;
+      const ti = evRecord.timeline_items as Record<string, unknown>;
+      const eventId = evRecord.timeline_item_id as string;
+      const others = (allParticipants ?? []).filter(
+        (p) => p.event_id === eventId && p.user_id !== userId
+      );
+
+      const participants: Array<{ email: string; displayName?: string }> = [];
+      for (const o of others) {
+        const email = (o.invited_email as string) || profilesByUserId[o.user_id as string]?.email || '';
+        const displayName =
+          profilesByUserId[o.user_id as string]?.displayName || email?.split('@')[0] || 'Arkadaş';
+        if (email) participants.push({ email, displayName });
+
+        const key = o.user_id || o.invited_email;
+        if (key && key !== userId) {
+          const existing = friendMap.get(key);
+          const startAt = (ti?.start_at as string) ?? '';
+          const eventCount = (existing?.eventCount ?? 0) + 1;
+          const lastEventAt =
+            !existing || startAt > existing.lastEventAt ? startAt : existing.lastEventAt;
+          friendMap.set(key, {
+            email: email || key,
+            displayName,
+            lastEventAt,
+            eventCount,
+          });
+        }
+      }
+
+      plansWithParticipants.push({
+        id: eventId,
+        title: (ti?.title as string) ?? '',
+        startAt: (ti?.start_at as string) ?? '',
+        endAt: (ti?.end_at as string) ?? '',
+        location: evRecord.location as string | undefined,
+        participants,
+      });
+    }
+
+    const friends = [...friendMap.values()]
+      .filter((f) => f.email)
+      .sort((a, b) => (b.lastEventAt > a.lastEventAt ? 1 : -1));
+
+    const sharedPlans = plansWithParticipants.sort(
+      (a, b) => (b.startAt > a.startAt ? 1 : -1)
+    );
+
+    return { friends, sharedPlans };
+  }
+
   async getEvent(userId: string, id: string) {
     const { data: ev, error } = await this.supabase
       .from('events')
