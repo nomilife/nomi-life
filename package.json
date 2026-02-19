@@ -1,0 +1,40 @@
+{
+  "name": "life-os",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm -r --parallel run dev",
+    "dev:api": "pnpm --filter api run dev",
+    "dev:mobile": "pnpm --filter mobile run dev",
+    "dev:mobile:tunnel": "node scripts/dev-mobile-tunnel.js",
+    "tunnel:api": "npx cloudflared tunnel --url http://localhost:3002",
+    "tunnel:metro": "npx cloudflared tunnel --url http://localhost:8081",
+    "tunnel:api:cf": "npx cloudflared tunnel --url http://localhost:3002",
+    "lint": "pnpm -r run lint",
+    "typecheck": "pnpm -r run typecheck",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "android": "expo run:android",
+    "ios": "expo run:ios"
+  },
+  "devDependencies": {
+    "cloudflared": "^0.7.1",
+    "@types/node": "^20.10.0",
+    "eslint": "^8.56.0",
+    "prettier": "^3.2.0",
+    "typescript": "^5.3.0"
+  },
+  "packageManager": "pnpm@9.0.0",
+  "pnpm": {
+    "overrides": {
+      "react": "19.1.0",
+      "react-dom": "19.1.0",
+      "@expo/metro-runtime": "6.1.2"
+    }
+  },
+  "version": "1.0.0",
+  "dependencies": {
+    "expo": "~54.0.33",
+    "react": "19.1.0",
+    "react-native": "0.81.5"
+  }
+}

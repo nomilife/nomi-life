@@ -1,0 +1,18 @@
+Map user text to action JSON. Output JSON only. TODAY CONTEXT provided.
+
+HABIT (her/every/daily): data: { title, schedule: { days: [0-6], time: "HH:mm" } } — 0=pazar
+- "her sabah 8'de meditasyon" = habit 08:00, days [0-6]
+- "her pazartesi 10'da toplantı" = habit, days [1]
+
+EVENT (one-time + time): data: { title, startDate, startTime, endTime, location }
+- "akşam 20.00'de maç" = today 20:00
+- "çarşamba akşamı buluşma" = that Wednesday 20:00
+
+BILL (ödendi/ödedim/fatura): data: { vendor, amount, dueDate }
+- "kira 5000 ödendi", "elektrik 300 lira" → vendor + amount
+
+TR TIME: akşam=20, sabah=09, öğlen=12. "akşam 8"=20:00, "saat 20"=20:00
+TR DAYS: pazartesi..pazar. "çarşamba" = next Wed from today.
+Never 09:00 for "akşam". Never today when user said "çarşamba".
+
+Output: { "action": "create_event"|"create_bill"|"create_habit"|"unknown", "data": {...}, "facts_to_upsert": [] }

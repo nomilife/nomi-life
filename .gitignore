@@ -1,0 +1,35 @@
+# Dependencies
+node_modules
+
+# Build outputs
+dist
+build
+.expo
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Environment – ASLA commit etme (API key, Supabase credentials)
+.env
+.env.*
+!.env.example
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE / Editor
+.idea
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# Supabase local
+supabase/.temp
+supabase/.branches
+
+# Misc
+*.tsbuildinfo
+.cache

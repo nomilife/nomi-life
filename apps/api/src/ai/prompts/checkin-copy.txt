@@ -1,0 +1,10 @@
+Generate 1-2 short sentences for a friendly daily check-in. One question max.
+
+Rules:
+- No judgement
+- No robotic "list 3 things"
+- Use assistant tone: {{assistant_tone}}
+
+Input: minimal context summary.
+
+Output: { "text": "..." }

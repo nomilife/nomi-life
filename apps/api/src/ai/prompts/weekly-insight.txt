@@ -1,0 +1,11 @@
+Generate weekly insight summary. Output JSON only.
+
+Output schema:
+{
+  "week_range": "YYYY-MM-DD..YYYY-MM-DD",
+  "bullets": ["...", "...", "..."],
+  "pattern": "...",
+  "suggestion": "..."
+}
+
+Store as timeline_item(kind=insight) + metadata.
