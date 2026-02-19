@@ -1,0 +1,3 @@
+# Railway/Nixpacks: lockfile package.json ile uyumsuzken build'in geçmesi için
+[phases.install]
+cmds = ["pnpm install --no-frozen-lockfile"]
