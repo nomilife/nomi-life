@@ -1,0 +1,9 @@
+{
+  "name": "Nomi – Life OS",
+  "short_name": "Nomi",
+  "display": "standalone",
+  "start_url": "/",
+  "background_color": "#F5EDE4",
+  "theme_color": "#F5EDE4",
+  "orientation": "portrait"
+}
