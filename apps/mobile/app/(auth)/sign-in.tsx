@@ -32,7 +32,7 @@ export default function SignIn() {
     setLoading(true);
     try {
       await signIn(email, password);
-      router.replace('/(tabs)/flow');
+      router.replace('/');
     } catch (e) {
       const err = e as Error & { status?: number };
       const msg = err.message?.toLowerCase() ?? '';

@@ -1,6 +1,6 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { View, ScrollView, Pressable } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { Ionicons } from '@expo/vector-icons';
@@ -86,12 +86,27 @@ function sortAndMergeItems(items: TimelineItem[]): Array<{ item: TimelineItem; t
 export default function FlowScreen() {
   const theme = useTheme();
   const router = useRouter();
+  const params = useLocalSearchParams<{ wowJobId?: string }>();
   const queryClient = useQueryClient();
   const [menuVisible, setMenuVisible] = useState(false);
   const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState(() => dayjs().format('YYYY-MM-DD'));
+  const wowJobId = params.wowJobId;
 
   const dateStr = selectedDate;
+
+  const { data: wowJob } = useQuery({
+    queryKey: ['ai', 'job', wowJobId],
+    queryFn: () => api<{ status: string; progressStage?: string; output?: { welcome_text?: string } }>(`/ai/jobs/${wowJobId}`),
+    enabled: !!wowJobId,
+    refetchInterval: (q) => (q.state.data?.status === 'done' || q.state.data?.status === 'failed' ? false : 1500),
+  });
+
+  useEffect(() => {
+    if (wowJob?.status === 'done') {
+      queryClient.invalidateQueries({ queryKey: ['timeline'] });
+    }
+  }, [wowJob?.status, queryClient]);
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['timeline', dateStr],
@@ -164,6 +179,25 @@ export default function FlowScreen() {
         <HomeMenuModal visible={menuVisible} onClose={() => setMenuVisible(false)} currentDate={dateStr} />
 
         <SwipeableTabContent currentTab="flow">
+          {wowJobId && wowJob && (
+            <View
+              style={{
+                marginHorizontal: flowTheme.spacing.lg,
+                marginBottom: flowTheme.spacing.sm,
+                padding: flowTheme.spacing.md,
+                backgroundColor: wowJob.status === 'done' ? 'rgba(56,161,105,0.2)' : 'rgba(224,124,60,0.2)',
+                borderRadius: flowTheme.radius.lg,
+                borderWidth: 1,
+                borderColor: wowJob.status === 'done' ? '#38A169' : nomiAppColors.primary,
+              }}
+            >
+              <AppText variant="small" style={{ color: flowTheme.colors.text, fontWeight: '600' }}>
+                {wowJob.status === 'done'
+                  ? wowJob.output?.welcome_text ?? "Planın hazır! Bugünün akışını aşağıda görebilirsin."
+                  : wowJob.progressStage ?? 'Plan oluşturuluyor...'}
+              </AppText>
+            </View>
+          )}
           <ScreenHeader
             onMenuPress={() => setMenuVisible(true)}
             title={dateStr === today ? "Today's Flow" : dayjs(dateStr).format('ddd, MMM D')}

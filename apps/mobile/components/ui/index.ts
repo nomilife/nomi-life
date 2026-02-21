@@ -2,6 +2,7 @@ export { AppText } from './AppText';
 export { AppCard } from './AppCard';
 export { AppButton } from './AppButton';
 export { AppInput } from './AppInput';
+export { TimeInput } from './TimeInput';
 export { AppChip } from './AppChip';
 export { SectionHeader } from './SectionHeader';
 export { EmptyState } from './EmptyState';

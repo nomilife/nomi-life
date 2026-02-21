@@ -21,6 +21,7 @@ import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { GoalsModule } from './goals/goals.module';
 import { TravelModule } from './travel/travel.module';
 import { JournalsModule } from './journals/journals.module';
+import { OnboardingModule } from './onboarding/onboarding.module';
 
 @Module({
   imports: [
@@ -50,6 +51,7 @@ import { JournalsModule } from './journals/journals.module';
     GoalsModule,
     TravelModule,
     JournalsModule,
+    OnboardingModule,
   ],
   providers: [
     {

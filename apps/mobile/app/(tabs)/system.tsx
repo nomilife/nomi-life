@@ -10,7 +10,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTheme } from '@/theme';
 import { useAuthStore } from '@/store/auth';
 import { useThemeStore } from '@/store/theme';
-import { useLifeAreasStore } from '@/store/lifeAreas';
 import { registerForPushNotifications } from '@/lib/notifications';
 import { api, getApiUrl, checkApiHealth } from '@/lib/api';
 import {
@@ -21,6 +20,7 @@ import {
   SettingsRow,
   LoadingState,
 } from '@/components/ui';
+import { PersonalizationSection } from '@/components/PersonalizationSection';
 
 type Settings = {
   locale: string;
@@ -52,7 +52,6 @@ export default function SystemScreen() {
   const signOut = useAuthStore((s) => s.signOut);
   const screenMode = useThemeStore((s) => s.screenMode);
   const setScreenMode = useThemeStore((s) => s.setScreenMode);
-  const lifeAreas = useLifeAreasStore((s) => s.areas);
 
   const [quietStart, setQuietStart] = useState('');
   const [quietEnd, setQuietEnd] = useState('');
@@ -180,29 +179,12 @@ export default function SystemScreen() {
         ))}
       </View>
 
-      <AppText variant="h3" style={{ marginTop: theme.spacing.xl, marginBottom: theme.spacing.sm }}>
-        Life Areas
-      </AppText>
-      <AppText variant="small" color="muted" style={{ marginBottom: theme.spacing.sm }}>
-        Health · Career · Learning · Finance · Relationships · Mind (editable)
-      </AppText>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm, marginBottom: theme.spacing.lg }}>
-        {lifeAreas.map((area) => (
-          <View
-            key={area}
-            style={{
-              paddingVertical: theme.spacing.xs,
-              paddingHorizontal: theme.spacing.md,
-              borderRadius: theme.radius.full,
-              backgroundColor: theme.colors.surface2,
-            }}
-          >
-            <AppText variant="caption" style={{ color: theme.colors.textPrimary }}>{area}</AppText>
-          </View>
-        ))}
+      <View style={{ marginTop: theme.spacing.xl }}>
+        <SectionHeader title="Personalization" />
+        <PersonalizationSection />
       </View>
 
-      <AppText variant="h3" style={{ marginBottom: theme.spacing.md }}>
+      <AppText variant="h3" style={{ marginTop: theme.spacing.xl, marginBottom: theme.spacing.md }}>
         {t('username')}
       </AppText>
       <AppText variant="small" color="muted" style={{ marginBottom: theme.spacing.sm }}>

@@ -11,7 +11,7 @@ async function bootstrap() {
     allowedHeaders: ['Content-Type', 'Authorization'],
   });
   const port = process.env.PORT ?? 3001;
-  await app.listen(port, '0.0.0.0');
+  await app.listen(port, '192.168.1.2');
   console.log(`LifeOS API running on http://0.0.0.0:${port}`);
 }
 bootstrap();

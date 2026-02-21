@@ -32,7 +32,7 @@ export default function SignUp() {
     setLoading(true);
     try {
       await signUp(email, password, fullName || undefined);
-      router.replace('/(tabs)/flow');
+      router.replace('/');
     } catch (e) {
       Alert.alert(t('error'), (e as Error).message);
     } finally {
